@@ -201,29 +201,33 @@ Each slice below can be copied into its own **sub-plan** using the template in �
 
 ### Slice 3 — Adjacency graph
 
-**Goal:** Compute contiguity graph; persist optional **edge list** or **weights matrix**; support queen vs rook.
+**Goal:** Compute contiguity graph; persist optional **edge list** or **weights matrix**; support queen vs rook; optional **void (gap)** polygons so land not covered by szvk still appears as graph nodes.
 
 **Deliverables:**
 - Implement `build_adjacency` → concrete **`AdjacencyGraph`** (neighbor lists aligned with `PrecinctIndexMap`, connectivity stats).
 - Optional: `save_adjacency` / `load_adjacency` under `data/processed/graph/`.
 - Immutable **JSON** patch (`add` / `remove` edges in index space) applied after auto-build, logged (`apply_adjacency_patch`).
-- **Folium map (optional):** script [`scripts/map_adjacency.py`](../scripts/map_adjacency.py) plus **`[project.optional-dependencies]`** `viz` (`folium`) — `uv sync --extra viz`. Renders **centroid–centroid polylines** for each undirected adjacency edge (schematic, not boundary tracing); use **`--maz`**, **`--max-features`**, **`--max-edges`** so national-scale HTML stays usable. Subsetting by county **drops cross-boundary edges** within the graph used for that run. See adjacency subsection in [data-model.md](data-model.md).
+- **Void / gap ETL (optional):** Official **county shell** minus **union(szvk)** per `maz`, written as extra rows with `unit_kind=void` and stable `precinct_id` (`gap-…`); script flags **`--with-gaps`**, **`--shell`**, and gap tuning on [`scripts/build_precinct_layer.py`](../scripts/build_precinct_layer.py). Manifest records shell path, SHA-256, and `gap_build` stats.
+- **Folium map (optional):** script [`scripts/map_adjacency.py`](../scripts/map_adjacency.py) plus **`[project.optional-dependencies]`** `viz` (`folium`) — `uv sync --extra viz`. Renders **centroid–centroid polylines** for each undirected adjacency edge (schematic, not boundary tracing); **FeatureGroups** + **LayerControl** when `unit_kind` distinguishes szvk vs void (orange / dashed void polygons); **`--no-gaps`** hides void geometry. Use **`--maz`**, **`--max-features`**, **`--max-edges`** for national-scale HTML. Subsetting by county **drops cross-boundary edges** within the graph used for that run. See adjacency and void subsections in [data-model.md](data-model.md).
 
 **OO / structure:**
 - **`AdjacencyGraph`**: frozen; neighbor lists; methods `neighbors(i)`, `degree(i)`, summary connectivity.
 - **`AdjacencyBuildOptions`**: dataclass (queen/rook; optional **fuzzy** contiguity via libpysal `fuzzy_contiguity`, with metric CRS when buffering).
+- **Gap ETL:** **`GapShellSource`**, **`GapBuildOptions`**, **`GapBuildStats`**, **`read_shell_gdf`**, **`build_gap_features_for_maz`**, **`build_gap_features_all_counties`**, **`merge_szvk_and_gaps`** in [`hungary_ge.io.gaps`](../src/hungary_ge/io/gaps.py).
 
-**Tests:** Known 2×2 grid toy; island / disconnected components; order mismatch; save/load roundtrip; patch apply.
+**Tests:** Known 2×2 grid toy; island / disconnected components; order mismatch; save/load roundtrip; patch apply; **gap shell difference + queen connectivity through void** (`tests/test_gaps.py`).
 
-**Docs:** Queen vs rook and graph paths in [data-model.md](data-model.md); optional viz in [README.md](../README.md) / [AGENTS.md](../AGENTS.md).
+**Docs:** Queen vs rook, fuzzy, and **void** units in [data-model.md](data-model.md); optional viz in [README.md](../README.md) / [AGENTS.md](../AGENTS.md).
 
-**Definition of done:** Graph for full Hungary build passes basic connectivity stats (e.g. one giant component unless islands expected); optional Folium HTML can be generated for a subset (e.g. single county).
+**Definition of done:** Graph for full Hungary build passes basic connectivity stats (e.g. one giant component unless islands expected); optional Folium HTML can be generated for a subset (e.g. single county), including void styling when the layer has `unit_kind`.
 
 ---
 
 ### Slice 4 — Votes, population, enacted focal map
 
 **Goal:** Join **2022 (or chosen year)** results to `precinct_id`; ingest **enacted OEVK** precinct assignment for focal comparison.
+
+**Note (void rows):** If the precinct layer includes `unit_kind=void` (**gap** polygons from Slice 3), vote and population joins must **exclude** those ids from electoral totals (or supply explicit zeros only for population). Do not impute party votes onto void units.
 
 **Deliverables:**
 - Data ingestion modules or scripts; `data/processed/precinct_votes.parquet` schema (column names for parties, total votes, invalids—**design doc first**).

@@ -95,7 +95,19 @@ Build weights with [`build_adjacency`](../src/hungary_ge/graph/adjacency.py) aft
 
 **Persistence:** undirected edges `i < j` in `data/processed/graph/adjacency_edges.parquet` with metadata in `adjacency_edges.meta.json` (same basename). When saving after a fuzzy build, pass `build_options` to [`save_adjacency`](../src/hungary_ge/graph/adjacency_io.py) so the JSON records fuzzy parameters (`fuzzy_buffering`, `fuzzy_tolerance`, optional `fuzzy_buffer_m`, `fuzzy_metric_crs` when buffering). **Patches** (optional) use JSON: `{"add": [[i,j], ...], "remove": [[i,j], ...]}` in index space, applied via [`apply_adjacency_patch`](../src/hungary_ge/graph/adjacency_io.py).
 
-**Visualization:** optional Folium HTML (`uv sync --extra viz`, then `scripts/map_adjacency.py`) draws centroid–centroid lines; use a **county filter** (`--maz`) or edge caps for national data.
+**Visualization:** optional Folium HTML (`uv sync --extra viz`, then `scripts/map_adjacency.py`) draws centroid–centroid lines; use a **county filter** (`--maz`) or edge caps for national data. If the layer includes **`unit_kind=void`** (gap polygons), the map uses separate **FeatureGroups**—szvk in grey, void in orange with dashed outline—and **`LayerControl`** to toggle; pass **`--no-gaps`** to plot szvk polygons only.
+
+### Void (`gap`) units (shell minus szvk union)
+
+NVI polygons do not tile all land (e.g. uninhabited belts around cities). Optional ETL adds **gap** rows so the contiguity graph can connect szvks that face each other across empty space.
+
+- **Geometry:** `county_shell \ union(szvk in county)` in a **metric CRS** (default EPSG:32633), then polygon parts above **`min_area_m2`** (specks dropped).
+- **Identifiers:** `precinct_id` pattern ``{void_id_prefix}-{maz}-{seq:04d}`` (default prefix `gap`). Columns **`maz`**, **`taz`**, **`szk`** use placeholders `000` on void rows so the schema stays join-friendly with szvk rows.
+- **`unit_kind`:** `szvk` on normal rows (set at merge time); `void` on gap rows.
+- **Population / votes:** No official population on voids; if a population column exists later, use **0** for void rows. **Do not** assign synthetic votes; exclude voids from partisan totals when aggregating (see Slice 4 in [master-plan.md](master-plan.md)).
+- **Provenance:** Record the **shell** file path, SHA-256, and `GapBuildOptions` in the precinct ETL manifest when using [`scripts/build_precinct_layer.py`](../scripts/build_precinct_layer.py) with **`--with-gaps`** and **`--shell`**. Use an **official or openly licensed** megye / NUTS boundary source appropriate for your study; document the exact URL and license in your run README or appendix—the repo does not ship a national shell by default.
+
+Implementation types live in [`hungary_ge.io.gaps`](../src/hungary_ge/io/gaps.py): **`GapShellSource`**, **`GapBuildOptions`**, **`GapBuildStats`**, **`read_shell_gdf`**, **`build_gap_features_for_maz`**, **`build_gap_features_all_counties`**, **`merge_szvk_and_gaps`**.
 
 ## Derived representations (future)
 
