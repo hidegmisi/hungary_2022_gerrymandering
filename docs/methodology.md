@@ -27,12 +27,12 @@ Practical plan for this project:
 ## Hungary and 2022 context
 
 - **OEVK:** National single-member districts for the Hungarian National Assembly. The number of OEVKs has been **106** under the post-2011 framework; confirm against your boundary and aggregation data.
-- **Data:** Precinct-level GeoJSON with links to settlement and county identifiers will drive building a geographic **dual graph** (adjacency) and assigning units to OEVKs.
-- **CRS:** Document the coordinate reference system of all inputs when you add data (for area calculations and overlays).
+- **Data:** Precinct geometries live in **`data/raw/szavkor_topo/`** (settlement JSON with `maz` / `taz` / `szk` and `poligon` strings). Convert to standard vector layers for building a **dual graph** (adjacency) and assigning units to OEVKs; see [`data-model.md`](data-model.md).
+- **CRS:** Source coordinates are implicit **WGS84** (`lat lon` strings). Document any reprojection (e.g. to a metric CRS for population balance or area).
 
 Placeholders until data and law text are attached:
 
-- Precinct data source and vintage
+- Official provenance link for the `szavkor_topo` extract (NVI or secondary compiler) and match to **2022** parliamentary election definitions
 - Whether analysis targets the **2022** parliamentary election specifically or a broader comparability window
 
 ## Simulation target

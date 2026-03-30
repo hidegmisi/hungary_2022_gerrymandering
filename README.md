@@ -26,9 +26,10 @@ uv run ruff format src
 
 ## Data
 
-Precinct boundaries and identifiers are expected as **GeoJSON** (polygon features) with attributes for precinct, settlement, and county IDs. Place source files under `data/raw/`. Large GeoJSON and archives are ignored by Git by default (see root `.gitignore`); use Git LFS or external storage if you need them in version control.
+- **Raw precinct geometry:** `data/raw/szavkor_topo/` — settlement JSON files with **szavazókör** polygons and IDs (`maz` county, `taz` settlement, `szk` precinct). Not GeoJSON; see [`docs/data-model.md`](docs/data-model.md).
+- **Processed:** Convert to GeoJSON / GeoPackage under `data/processed/` for spatial analysis and adjacency. Large standalone GeoJSON or archives under `data/raw/` may be gitignored (see root `.gitignore`).
 
-Processed artifacts (graphs, cleaned tables) will go under `data/processed/`.
+Processed artifacts (graphs, cleaned tables, converted geometries) go under `data/processed/`.
 
 ## Documentation
 
@@ -40,7 +41,7 @@ Processed artifacts (graphs, cleaned tables) will go under `data/processed/`.
 ## Roadmap
 
 - Document Hungarian OEVK redistricting rules and encode them in the sampler
-- Confirm **data feasibility:** precinct GeoJSON, **precinct-level election results** joinable to those units, and reference geometry or labels for the **106** enacted OEVKs
+- Confirm **data feasibility:** precinct geometries (see `szavkor_topo`), **precinct-level election results** joinable via `maz` / `taz` / `szk` (or your composite key), and reference geometry or labels for the **106** enacted OEVKs
 - Simulate on the order of **10,000** alternative OEVK designs consistent with those rules
 - Compare enacted (or focal) plans to the ensemble using **partisan outcome metrics** (e.g. seats–votes, **efficiency gap**, symmetry-style measures); treat **compactness** mainly as a constraint or secondary descriptor, not the primary fairness evidence
 

@@ -1,27 +1,58 @@
 # Data model
 
-## Inputs: precinct GeoJSON
+## Raw: `szavkor_topo` (precinct JSON)
 
-Expected artifact: a **GeoJSON** `FeatureCollection` whose features are precinct polygons (or multipolygons).
+The repository includes **`data/raw/szavkor_topo/`**: on the order of **3,177** **settlement-level JSON** files (one település file each), grouped by county, **not** standard GeoJSON.
 
-**Empirical stack (checklist):** To run ensemble comparisons end-to-end you need precinct geometry **and** votable results at (or aggregable to) the same geographic level, plus a **reference enacted OEVK map** (106 districts) to compare against simulated plans. Missing precinct-level results or non-joinable IDs is a project risk; document sources and joins here as you lock them in.
+### Layout on disk
+
+- Path pattern: `data/raw/szavkor_topo/{maz}/{maz}-{taz}.json`
+- **`maz`:** two-digit **county** (megye) code, `01` … `20` (top-level folders).
+- **`taz`:** three-digit **settlement** code within the county (suffix in the filename after `{maz}-`).
+- Each file’s **`list`** holds one row per **precinct** (szavazókör) in that settlement.
+
+### JSON schema (per file)
+
+| Field (root) | Meaning |
+|--------------|--------|
+| `header.generated` | ISO timestamp for the extract (observed: `2022-04-02T23:30:00`) |
+| `header.vl_id`, `header.nvv_id` | Numeric IDs packaged with the extract (treat as provenance until mapped to official NVI metadata) |
+| `list[]` | Array of precinct records |
+
+| Field (each element of `list`) | Meaning |
+|----------------------------------|--------|
+| `maz` | County code (string, matches parent folder) |
+| `taz` | Settlement code within county (string, zero-padded) |
+| `szk` | Precinct index within the settlement (szavazókör; string, zero-padded) |
+| `centrum` | Single point as `"<lat> <lon>"` (space-separated decimals) |
+| `poligon` | Closed-ring outline as comma-separated `"<lat> <lon>"` vertices (same order as published; parse as WGS84) |
+
+**Precinct identifier:** Use a stable composite key, e.g. **`{maz}-{taz}-{szk}`**, for joins and graph nodes. Coordinates read as **EPSG:4326** (decimal degrees; latitude first in the source strings).
+
+### Pipeline note
+
+Downstream tools (GeoPandas, `shapely`, `redist`-style graphs) expect standard geometries. Plan an ETL step that parses `poligon` into rings, builds `Polygon` / `MultiPolygon` features, and optionally emits **GeoJSON** or **GeoPackage** under `data/processed/` with the same `maz` / `taz` / `szk` properties.
+
+---
+
+## Canonical analysis form: precinct GeoJSON (processed)
+
+After conversion (or if you ingest third-party GeoJSON), the canonical artifact is a **GeoJSON** `FeatureCollection` whose features are **precinct polygons** (or multipolygons) with at least county, settlement, and precinct attributes (aligned with `maz`, `taz`, `szk` above).
+
+**Empirical stack (checklist):** To run ensemble comparisons end-to-end you still need **votable results** at (or aggregable to) the same geographic level as these precincts, plus a **reference enacted OEVK map** (106 districts) to compare against simulated plans.
 
 ### Feature properties (conceptual)
 
-Each feature should carry identifiers usable for aggregation and legal constraints:
-
 | Concept        | Role |
 |----------------|------|
-| Precinct ID    | Smallest geographic unit for assignment to an OEVK |
-| Settlement ID  | Municipal or locality grouping (for rules tying plans to settlements) |
-| County ID      | Megye-level grouping (for county-related constraints) |
-
-**Exact attribute names** in your file (for example `precinct_id` vs Hungarian labels) will be recorded here once a sample file is available.
+| Precinct ID    | Smallest geographic unit for assignment to an OEVK; use composite `maz-taz-szk` when sourced from `szavkor_topo` |
+| Settlement ID  | `maz` + `taz` (settlement within county) |
+| County ID      | `maz` |
 
 ### Geometry
 
 - Polygon or MultiPolygon per precinct
-- Consistent CRS in the file or documented in sidecar metadata; reprojection for analysis should be explicit
+- CRS: document explicitly (WGS **EPSG:4326** if converted without reprojection from `szavkor_topo`); reprojection for area-balanced constraints should be explicit (e.g. metric CRS for Hungarian extent)
 
 ## Derived representations (future)
 

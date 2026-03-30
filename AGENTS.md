@@ -13,7 +13,7 @@ This file helps humans and coding agents work consistently on the Hungary OEVK e
 | Path | Use |
 |------|-----|
 | `src/hungary_ge/` | Installable Python package (primary code) |
-| `data/raw/` | Source GeoJSON and downloads (large files often gitignored) |
+| `data/raw/` | Includes `szavkor_topo/` (precinct JSON by settlement); other GeoJSON or downloads (large flat files often gitignored) |
 | `data/processed/` | Derived tables, graphs, pipeline outputs |
 | `docs/` | Methodology, data model, references |
 
