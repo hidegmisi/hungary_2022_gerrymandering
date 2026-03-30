@@ -12,8 +12,10 @@
       "centrum": "46.4593590 17.8051240",
       "poligon": "46.4471 17.8017,46.4466 17.8027,46.4524 17.812,46.463 17.8136,46.4668 17.8041,46.4471 17.8017",
       "name": "Somogyaszaló, 001. számú szavazókör",
+      "oevk_id": "03",
       "voters": 471,
       "allowsReg": true,
+      "oevk_id_full": "15-03",
       "listVotes": {
         "952": 168,
         "950": 106,
@@ -30,8 +32,10 @@
       "centrum": "46.4542900 17.8362370",
       "poligon": "46.4579 17.835,46.4488 17.8378,46.4537 17.8367,46.4579 17.835",
       "name": "Somogyaszaló, 002. számú szavazókör",
+      "oevk_id": "03",
       "voters": 122,
       "allowsReg": false,
+      "oevk_id_full": "15-03",
       "listVotes": {
         "952": 57,
         "950": 18,

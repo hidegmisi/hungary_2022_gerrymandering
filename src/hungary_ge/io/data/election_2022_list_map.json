@@ -3,11 +3,9 @@
   "election_year": 2022,
   "description": "Editable stub: map szavkor_topo listVotes string keys to stable vote column names (votes_*). Extend with label_hu from official list metadata when needed. Unmapped keys log warnings unless ETL strict_unknown_lists=True.",
   "lists": {
-    "942": {"column": "votes_list_942", "label_hu": null},
-    "950": {"column": "votes_list_950", "label_hu": null},
-    "951": {"column": "votes_list_951", "label_hu": null},
-    "952": {"column": "votes_list_952", "label_hu": null},
-    "954": {"column": "votes_list_954", "label_hu": null},
-    "955": {"column": "votes_list_955", "label_hu": null}
+    "942": {"column": "votes_list_942", "label_hu": "MI HAZÁNK"},
+    "950": {"column": "votes_list_950", "label_hu": "DK-JOBBIK-MOMENTUM-MSZP-LMP-PÁRBESZÉD"},
+    "951": {"column": "votes_list_951", "label_hu": "MKKP"},
+    "952": {"column": "votes_list_952", "label_hu": "FIDESZ-KDNP"}
   }
 }
