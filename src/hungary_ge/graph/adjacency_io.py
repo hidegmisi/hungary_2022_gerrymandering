@@ -11,7 +11,11 @@ from typing import Any
 
 import pandas as pd
 
-from hungary_ge.graph.adjacency_graph import AdjacencyGraph, from_neighbor_lists
+from hungary_ge.graph.adjacency_graph import (
+    AdjacencyBuildOptions,
+    AdjacencyGraph,
+    from_neighbor_lists,
+)
 from hungary_ge.problem.precinct_index_map import PrecinctIndexMap
 
 logger = logging.getLogger(__name__)
@@ -109,8 +113,13 @@ def save_adjacency(
     meta_json: str | Path | None = None,
     *,
     hungary_ge_version: str | None = None,
+    build_options: AdjacencyBuildOptions | None = None,
 ) -> None:
-    """Write undirected edges ``i < j`` to Parquet and metadata to JSON."""
+    """Write undirected edges ``i < j`` to Parquet and metadata to JSON.
+
+    When ``build_options`` is passed with ``fuzzy=True``, fuzzy-related fields are
+    written into the JSON for provenance (load ignores them).
+    """
     edges_parquet = Path(edges_parquet)
     rows: list[dict[str, int]] = []
     for i, neigh in enumerate(graph.neighbor_lists):
@@ -135,6 +144,14 @@ def save_adjacency(
             "n_island_nodes": len(graph.island_nodes),
         },
     }
+    if build_options is not None and build_options.fuzzy:
+        meta["fuzzy_buffering"] = build_options.fuzzy_buffering
+        meta["fuzzy_tolerance"] = build_options.fuzzy_tolerance
+        meta["fuzzy_predicate"] = build_options.fuzzy_predicate
+        if build_options.fuzzy_buffer_m is not None:
+            meta["fuzzy_buffer_m"] = build_options.fuzzy_buffer_m
+        if build_options.fuzzy_buffering:
+            meta["fuzzy_metric_crs"] = build_options.fuzzy_metric_crs
     if meta_json is None:
         meta_json = edges_parquet.with_suffix(".meta.json")
     else:

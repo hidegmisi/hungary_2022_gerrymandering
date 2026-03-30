@@ -2,11 +2,12 @@
 
 from __future__ import annotations
 
+import json
 from pathlib import Path
 
 import geopandas as gpd
 import pytest
-from shapely.geometry import box
+from shapely.geometry import Polygon, box
 
 from hungary_ge.graph import (
     AdjacencyBuildOptions,
@@ -127,6 +128,69 @@ def test_patch_remove_edge() -> None:
     g2, stats = apply_adjacency_patch(g, patch)
     assert stats.n_remove_applied == 1
     assert g2.n_edges == e0 - 1
+
+
+@pytest.mark.filterwarnings("ignore:The weights matrix is not fully connected:UserWarning")
+def test_fuzzy_buffering_closes_near_miss_gap() -> None:
+    """Hairline gap: queen is disconnected; fuzzy_contiguity with buffering links."""
+    prob = OevkProblem(county_column=None, pop_column=None, crs="EPSG:32633")
+    p0 = Polygon([(0, 0), (10, 0), (10, 10), (0, 10), (0, 0)])
+    p1 = Polygon([(10.02, 1), (15, 1), (15, 5), (10.02, 5), (10.02, 1)])
+    gdf = gpd.GeoDataFrame(
+        {
+            DEFAULT_PRECINCT_ID_COLUMN: ["a", "b"],
+            "geometry": [p0, p1],
+        },
+        crs="EPSG:32633",
+    )
+    gdf2, pmap = prepare_precinct_layer(gdf, prob)
+    gq = build_adjacency(
+        gdf2,
+        prob,
+        pmap,
+        options=AdjacencyBuildOptions(contiguity="queen"),
+    )
+    assert gq.n_components == 2
+    assert gq.n_edges == 0
+
+    opts = AdjacencyBuildOptions(
+        fuzzy=True,
+        fuzzy_buffering=True,
+        fuzzy_buffer_m=1.0,
+        fuzzy_metric_crs="EPSG:32633",
+    )
+    gf = build_adjacency(gdf2, prob, pmap, options=opts)
+    assert gf.contiguity == "fuzzy:buffered"
+    assert gf.n_components == 1
+    assert gf.n_edges == 1
+
+
+def test_save_adjacency_fuzzy_meta(tmp_path: Path) -> None:
+    prob = OevkProblem(county_column=None, pop_column=None, crs="EPSG:32633")
+    p0 = Polygon([(0, 0), (10, 0), (10, 10), (0, 10), (0, 0)])
+    p1 = Polygon([(10.02, 1), (15, 1), (15, 5), (10.02, 5), (10.02, 1)])
+    gdf = gpd.GeoDataFrame(
+        {
+            DEFAULT_PRECINCT_ID_COLUMN: ["a", "b"],
+            "geometry": [p0, p1],
+        },
+        crs="EPSG:32633",
+    )
+    gdf2, pmap = prepare_precinct_layer(gdf, prob)
+    opts = AdjacencyBuildOptions(
+        fuzzy=True,
+        fuzzy_buffering=True,
+        fuzzy_buffer_m=1.0,
+    )
+    g = build_adjacency(gdf2, prob, pmap, options=opts)
+    p = tmp_path / "e.parquet"
+    mj = tmp_path / "e.meta.json"
+    save_adjacency(g, p, mj, build_options=opts)
+    meta = json.loads(mj.read_text(encoding="utf-8"))
+    assert meta["fuzzy_buffering"] is True
+    assert meta["fuzzy_buffer_m"] == 1.0
+    assert meta["fuzzy_metric_crs"] == "EPSG:32633"
+    assert meta["contiguity"] == "fuzzy:buffered"
 
 
 def test_patch_add_edge_idempotent() -> None:

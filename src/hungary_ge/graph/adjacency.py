@@ -2,8 +2,10 @@
 
 from __future__ import annotations
 
+from typing import Any
+
 from geopandas import GeoDataFrame
-from libpysal.weights import Queen, Rook
+from libpysal.weights import Queen, Rook, fuzzy_contiguity
 
 from hungary_ge.graph.adjacency_graph import (
     AdjacencyBuildOptions,
@@ -30,7 +32,7 @@ def build_adjacency(
         gdf: Precinct GeoDataFrame (e.g. from :func:`hungary_ge.io.load_processed_geoparquet`).
         problem: Uses ``precinct_id_column`` for alignment checks only.
         index_map: Canonical precinct order and ids.
-        options: ``queen`` (shared vertex or edge) vs ``rook`` (shared edge only).
+        options: ``queen`` / ``rook``, or ``fuzzy`` (libpysal ``fuzzy_contiguity``).
 
     Returns:
         Immutable :class:`~hungary_ge.graph.adjacency_graph.AdjacencyGraph`.
@@ -45,6 +47,20 @@ def build_adjacency(
     if len(gdf) != index_map.n_units:
         msg = "GeoDataFrame length does not match PrecinctIndexMap"
         raise ValueError(msg)
+
+    if opts.fuzzy:
+        gdf_w = gdf.to_crs(opts.fuzzy_metric_crs) if opts.fuzzy_buffering else gdf
+        fc_kw: dict[str, Any] = {
+            "tolerance": opts.fuzzy_tolerance,
+            "buffering": opts.fuzzy_buffering,
+            "drop": True,
+            "predicate": opts.fuzzy_predicate,
+        }
+        if opts.fuzzy_buffer_m is not None:
+            fc_kw["buffer"] = opts.fuzzy_buffer_m
+        w = fuzzy_contiguity(gdf_w, **fc_kw)
+        contiguity_label = "fuzzy:buffered" if opts.fuzzy_buffering else "fuzzy:intersect"
+        return from_libpysal_w(w, index_map, contiguity_label)
 
     if opts.contiguity == "queen":
         w = Queen.from_dataframe(gdf, use_index=False)

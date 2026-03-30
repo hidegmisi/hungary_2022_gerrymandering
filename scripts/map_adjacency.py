@@ -68,7 +68,35 @@ def main() -> int:
         "--contiguity",
         choices=("queen", "rook"),
         default="queen",
-        help="Contiguity rule for libpysal weights",
+        help="Contiguity rule when --fuzzy is not set (libpysal Queen/Rook)",
+    )
+    parser.add_argument(
+        "--fuzzy",
+        action="store_true",
+        help="Use libpysal fuzzy_contiguity instead of Queen/Rook",
+    )
+    parser.add_argument(
+        "--fuzzy-buffering",
+        action="store_true",
+        help="With --fuzzy: buffer geometries in fuzzy_metric_crs (meters) to close small gaps",
+    )
+    parser.add_argument(
+        "--fuzzy-tolerance",
+        type=float,
+        default=0.005,
+        help="With --fuzzy: libpysal tolerance when buffer distance is derived from bbox",
+    )
+    parser.add_argument(
+        "--fuzzy-buffer-m",
+        type=float,
+        default=None,
+        help="With --fuzzy: fixed buffer distance in meters (overrides tolerance-based buffer)",
+    )
+    parser.add_argument(
+        "--fuzzy-metric-crs",
+        type=str,
+        default="EPSG:32633",
+        help="With --fuzzy --fuzzy-buffering: projected CRS for buffering (default UTM 33N)",
     )
     parser.add_argument(
         "--no-polygons",
@@ -104,11 +132,21 @@ def main() -> int:
         crs="EPSG:4326",
     )
     gdf2, pmap = prepare_precinct_layer(gdf, prob)
+    if args.fuzzy:
+        adj_opts = AdjacencyBuildOptions(
+            fuzzy=True,
+            fuzzy_buffering=args.fuzzy_buffering,
+            fuzzy_tolerance=args.fuzzy_tolerance,
+            fuzzy_buffer_m=args.fuzzy_buffer_m,
+            fuzzy_metric_crs=args.fuzzy_metric_crs,
+        )
+    else:
+        adj_opts = AdjacencyBuildOptions(contiguity=args.contiguity)
     graph = build_adjacency(
         gdf2,
         prob,
         pmap,
-        options=AdjacencyBuildOptions(contiguity=args.contiguity),
+        options=adj_opts,
     )
     summ = adjacency_summary(graph)
     print(summ)  # noqa: T201

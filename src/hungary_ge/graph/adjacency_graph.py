@@ -16,9 +16,21 @@ ContiguityKind = Literal["queen", "rook"]
 
 @dataclass(frozen=True)
 class AdjacencyBuildOptions:
-    """Parameters for :func:`~hungary_ge.graph.adjacency.build_adjacency`."""
+    """Parameters for :func:`~hungary_ge.graph.adjacency.build_adjacency`.
+
+    When ``fuzzy`` is ``True``, libpysal ``fuzzy_contiguity`` is used and
+    ``contiguity`` (queen/rook) is ignored. With ``fuzzy_buffering``,
+    geometries are reprojected to ``fuzzy_metric_crs`` (meters) before building
+    weights; buffering in geographic CRS is not supported for that path.
+    """
 
     contiguity: ContiguityKind = "queen"
+    fuzzy: bool = False
+    fuzzy_buffering: bool = False
+    fuzzy_tolerance: float = 0.005
+    fuzzy_buffer_m: float | None = None
+    fuzzy_metric_crs: str = "EPSG:32633"
+    fuzzy_predicate: str = "intersects"
 
 
 @dataclass(frozen=True)
