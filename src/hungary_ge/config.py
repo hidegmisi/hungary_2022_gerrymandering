@@ -13,7 +13,7 @@ PRECINCTS_GEOJSON = "precincts.geojson"
 PRECINCTS_PARQUET = "precincts.parquet"
 PRECINCT_VOTES_PARQUET = "precinct_votes.parquet"
 ENSEMBLE_ASSIGNMENTS_PARQUET = "ensemble_assignments.parquet"
-FOCAL_OEVK_PARQUET = "focal_oevk.parquet"
+FOCAL_OEVK_ASSIGNMENTS_PARQUET = "focal_oevk_assignments.parquet"
 
 PROCESSED_DIR = Path("data/processed")
 MANIFESTS_DIR = Path("data/processed/manifests")
@@ -52,8 +52,8 @@ class ProcessedPaths:
         return self.processed_dir / ENSEMBLE_ASSIGNMENTS_PARQUET
 
     @property
-    def focal_oevk_parquet(self) -> Path:
-        return self.processed_dir / FOCAL_OEVK_PARQUET
+    def focal_oevk_assignments_parquet(self) -> Path:
+        return self.processed_dir / FOCAL_OEVK_ASSIGNMENTS_PARQUET
 
     def manifest_json(self, build_id: str) -> Path:
         """Optional reproducibility manifest: ``manifests/{build_id}.json``."""

@@ -237,9 +237,17 @@ Each slice below can be copied into its own **sub-plan** using the template in �
 
 **Note (void rows):** If the precinct layer includes `unit_kind=void` (**gap** polygons from Slice 3), vote and population joins must **exclude** those ids from electoral totals (or supply explicit **zeros** for population on void rows when building a **full-length** population vector aligned to **`PrecinctIndexMap`** for Slice 6). Do not impute party votes onto void units.
 
+**Clarifications (this project):**
+- **Party / list mapping:** Ship an **editable stub** `list_id` → column name mapping (**JSON or YAML**, versioned, git-friendly). It need not be complete on day one; maintainers can fill it in as official list metadata is confirmed. ETL should **warn** (or optionally error) on unmapped `listVotes` keys.
+- **Focal OEVK:** Raw `szavkor_topo` precinct records are expected to include **`oevk_id`** (unique **within the county** / `maz`) and **`oevk_id_full`** (unique **nationally**, the enacted district key). ETL should emit **`focal_oevk_assignments`** from the same JSON pass as votes/geometry—no separate boundary overlay required for v1. Canonical column for national district identity: **`oevk_id_full`**; keep **`oevk_id`** + **`maz`** if useful for QA or county-scoped checks.
+- **Vote accounting:** **List votes only** (`listVotes` pivoted); sufficient for **partisan bias / metrics** in Slice 9. Do not require invalid or blank-ballot columns in the parquet schema.
+- **`voters` field:** Treated as **votes cast** in documentation; downstream use as a population-style weight is optional and not critical for closing this slice.
+- **Census population:** **Out of scope** for this roadmap slice—no census join or census-based `pop_column` requirement.
+
 **Deliverables:**
-- Data ingestion modules or scripts; `data/processed/precinct_votes.parquet` schema (column names for parties, total votes, invalids—**design doc first**).
-- `data/processed/focal_oevk_assignments.parquet` (columns `precinct_id`, `oevk_id`).
+- Data ingestion modules or scripts; **`data/processed/precinct_votes.parquet`** schema (**design in [data-model.md](data-model.md)**): `precinct_id`, list-based party columns from the mapping file, optional `voters`, provenance metadata. **No** invalid-ballot columns required.
+- **Stub mapping file** (e.g. `data/processed/election_2022_list_map.yaml` or under `src/hungary_ge/io/data/`) — editable list-ID → `votes_*` column names.
+- **`data/processed/focal_oevk_assignments.parquet`**: `precinct_id`, **`oevk_id_full`** (primary enacted district id), optional **`oevk_id`**, **`maz`**.
 - **`load_votes_table`**, **`load_focal_assignments`** in `io` or `metrics` support module.
 - Validation: coverage rate of precincts matched; report missing IDs.
 
@@ -249,9 +257,9 @@ Each slice below can be copied into its own **sub-plan** using the template in �
 
 **Tests:** Join on synthetic keys; no duplicate `precinct_id` in focal table.
 
-**Risks:** Official results granularity ≠ szavkor; document aggregation rules.
+**Risks:** Unmapped `listVotes` keys until the party map is filled; document behavior (warn vs fail).
 
-**Definition of done:** End-to-end join yields analysis-ready table for **metrics slice**.
+**Definition of done:** End-to-end join yields analysis-ready table for **metrics slice**; focal assignments derivable from JSON without external OEVK boundary files.
 
 ---
 
