@@ -104,6 +104,11 @@ def main() -> int:
         help="Do not add precinct polygons to the map (faster/smaller HTML).",
     )
     parser.add_argument(
+        "--no-gaps",
+        action="store_true",
+        help="If layer has unit_kind, draw szvk polygons only (hide void/gap features).",
+    )
+    parser.add_argument(
         "--out",
         type=Path,
         default=None,
@@ -182,16 +187,53 @@ def main() -> int:
             break
 
     if not args.no_polygons:
-        gj = folium.GeoJson(
-            gdf2.to_json(),
-            style_function=lambda _f: {
-                "fillColor": "#eeeeee",
-                "color": "#888888",
-                "weight": 0.5,
-                "fillOpacity": 0.2,
-            },
+        fg_szvk = folium.FeatureGroup(name="Precincts (szvk)", show=True)
+        has_void_layer = (
+            not args.no_gaps
+            and "unit_kind" in gdf2.columns
+            and (gdf2["unit_kind"].astype(str) == "void").any()
         )
-        gj.add_to(m)
+        if has_void_layer:
+            is_void = gdf2["unit_kind"].astype(str) == "void"
+            szvk_part = gdf2[~is_void]
+            void_part = gdf2[is_void]
+            folium.GeoJson(
+                szvk_part.to_json(),
+                style_function=lambda _f: {
+                    "fillColor": "#eeeeee",
+                    "color": "#888888",
+                    "weight": 0.5,
+                    "fillOpacity": 0.25,
+                },
+            ).add_to(fg_szvk)
+            fg_void = folium.FeatureGroup(name="Gap (void)", show=True)
+            folium.GeoJson(
+                void_part.to_json(),
+                style_function=lambda _f: {
+                    "fillColor": "#ff9f1c",
+                    "color": "#cc7000",
+                    "weight": 1.0,
+                    "fillOpacity": 0.35,
+                    "dashArray": "4 3",
+                },
+            ).add_to(fg_void)
+            fg_szvk.add_to(m)
+            fg_void.add_to(m)
+            folium.LayerControl(collapsed=False).add_to(m)
+        else:
+            plot_gdf = gdf2
+            if args.no_gaps and "unit_kind" in gdf2.columns:
+                plot_gdf = gdf2[gdf2["unit_kind"].astype(str) != "void"]
+            folium.GeoJson(
+                plot_gdf.to_json(),
+                style_function=lambda _f: {
+                    "fillColor": "#eeeeee",
+                    "color": "#888888",
+                    "weight": 0.5,
+                    "fillOpacity": 0.2,
+                },
+            ).add_to(fg_szvk)
+            fg_szvk.add_to(m)
 
     m.fit_bounds([[lats.min(), lons.min()], [lats.max(), lons.max()]])
 
