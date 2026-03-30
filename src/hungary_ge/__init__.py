@@ -8,6 +8,14 @@ Pipeline stages mirror ALARM / ``redist`` (see ``docs/alarm-methodology.md``):
 ``hungary_ge.metrics``.
 """
 
+from hungary_ge.config import (
+    ENSEMBLE_ASSIGNMENTS_PARQUET,
+    FOCAL_OEVK_PARQUET,
+    PRECINCT_VOTES_PARQUET,
+    PRECINCTS_GEOJSON,
+    PROCESSED_DIR,
+    ProcessedPaths,
+)
 from hungary_ge.diagnostics import summarize_ensemble
 from hungary_ge.ensemble import PlanEnsemble
 from hungary_ge.graph import build_adjacency
@@ -22,6 +30,12 @@ from hungary_ge.sampling import sample_plans
 
 __all__ = [
     "DEFAULT_NDISTS",
+    "ENSEMBLE_ASSIGNMENTS_PARQUET",
+    "FOCAL_OEVK_PARQUET",
+    "PRECINCTS_GEOJSON",
+    "PRECINCT_VOTES_PARQUET",
+    "PROCESSED_DIR",
+    "ProcessedPaths",
     "OevkProblem",
     "PlanEnsemble",
     "build_adjacency",

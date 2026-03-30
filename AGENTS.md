@@ -38,6 +38,8 @@ Prefer **relative paths** in scripts and notebooks so runs are reproducible acro
 
 - **Python:** 3.12+ (see `.python-version`).
 - **Dependencies:** [uv](https://docs.astral.sh/uv/) — `uv sync`, `uv run …`.
+- **Verification (Slice 0):** after `uv sync`, confirm the geospatial stack and package import:
+  `uv run python -c "import geopandas; import hungary_ge"`
 - **Lint / format:** Ruff — `uv run ruff check src`, `uv run ruff format src`.
 - **Git hooks:** [pre-commit](https://pre-commit.com/) — `uv run pre-commit install`, then `uv run pre-commit run --all-files` (config: `.pre-commit-config.yaml`).
 - **R (optional later):** Ensemble sampling may use **redist** / **geomander**; document any R environment or scripts when added.

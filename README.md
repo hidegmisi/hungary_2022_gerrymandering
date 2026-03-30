@@ -11,10 +11,10 @@ This project quantifies gerrymandering in Hungary by generating a large ensemble
 uv sync
 ```
 
-- Smoke test (editable package import):
+- Smoke test (GeoPandas + editable package import):
 
 ```bash
-uv run python -c "import hungary_ge; print('ok')"
+uv run python -c "import geopandas; import hungary_ge; print('ok')"
 ```
 
 ### Lint and format

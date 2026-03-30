@@ -3,7 +3,15 @@ name = "hungary-ge"
 version = "0.1.0"
 description = "Ensemble analysis of Hungarian OEVK districts (2022) using ALARM-style simulation methodology"
 requires-python = ">=3.12"
-dependencies = []
+dependencies = [
+    "geopandas>=1.0.0",
+    "pyogrio>=0.9.0",
+    "numpy>=1.26.0",
+    "pandas>=2.0.0",
+    "shapely>=2.0.0",
+    "libpysal>=4.9.0",
+    "pyarrow>=15.0.0",
+]
 
 [build-system]
 requires = ["uv_build>=0.11.2,<0.12.0"]
@@ -12,6 +20,7 @@ build-backend = "uv_build"
 [dependency-groups]
 dev = [
     "pre-commit>=4,<5",
+    "pytest>=8.0.0",
     "ruff>=0.15.8",
 ]
 
@@ -29,3 +38,6 @@ extend-select = [
 
 [tool.ruff.format]
 quote-style = "double"
+
+[tool.pytest.ini_options]
+testpaths = ["tests"]
