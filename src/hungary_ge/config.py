@@ -10,6 +10,7 @@ from dataclasses import dataclass
 from pathlib import Path
 
 PRECINCTS_GEOJSON = "precincts.geojson"
+PRECINCTS_PARQUET = "precincts.parquet"
 PRECINCT_VOTES_PARQUET = "precinct_votes.parquet"
 ENSEMBLE_ASSIGNMENTS_PARQUET = "ensemble_assignments.parquet"
 FOCAL_OEVK_PARQUET = "focal_oevk.parquet"
@@ -35,6 +36,10 @@ class ProcessedPaths:
     @property
     def precincts_geojson(self) -> Path:
         return self.processed_dir / PRECINCTS_GEOJSON
+
+    @property
+    def precincts_parquet(self) -> Path:
+        return self.processed_dir / PRECINCTS_PARQUET
 
     @property
     def precinct_votes_parquet(self) -> Path:

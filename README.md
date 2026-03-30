@@ -20,16 +20,26 @@ uv run python -c "import geopandas; import hungary_ge; print('ok')"
 ### Lint and format
 
 ```bash
-uv run ruff check src
-uv run ruff format src
+uv run ruff check src tests scripts
+uv run ruff format src tests scripts
 ```
 
 ## Data
 
 - **Raw precinct geometry:** `data/raw/szavkor_topo/` — settlement JSON files with **szavazókör** polygons and IDs (`maz` county, `taz` settlement, `szk` precinct). Not GeoJSON; see [`docs/data-model.md`](docs/data-model.md).
-- **Processed:** Convert to GeoJSON / GeoPackage under `data/processed/` for spatial analysis and adjacency. Large standalone GeoJSON or archives under `data/raw/` may be gitignored (see root `.gitignore`).
+- **Processed:** canonical national precinct layer as **GeoParquet** (`data/processed/precincts.parquet`) plus optional GeoJSON; large outputs may be gitignored locally.
 
-Processed artifacts (graphs, cleaned tables, converted geometries) go under `data/processed/`.
+### ETL: build the precinct layer
+
+From the repository root (after `uv sync`), with raw data present:
+
+```bash
+uv run python scripts/build_precinct_layer.py
+```
+
+This writes `data/processed/precincts.parquet` and, by default, `data/processed/manifests/precincts_etl.json` (counts, dropped rows, SHA-256 of the parquet). Use `--out-geojson path` for a GeoJSON copy. Geometry repair and provenance are documented in [`docs/data-model.md`](docs/data-model.md) (ETL subsection).
+
+Other processed artifacts (graphs, votes tables, ensemble outputs) also go under `data/processed/` per the data model.
 
 ### Python package layout
 

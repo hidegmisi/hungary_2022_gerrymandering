@@ -6,12 +6,32 @@ instantiated in memory (GeoPandas + problem metadata).
 
 from hungary_ge.io.geoio import (
     load_processed_geojson,
+    load_processed_geoparquet,
     load_szavkor_settlement_json,
     write_processed_geojson,
+    write_processed_geoparquet,
+)
+from hungary_ge.io.precinct_etl import (
+    PrecinctBuildStats,
+    build_precinct_gdf,
+    raw_precinct_list_total,
+)
+from hungary_ge.io.szavkor_parse import (
+    SzavkorRecord,
+    composite_precinct_id,
+    parse_poligon,
 )
 
 __all__ = [
+    "PrecinctBuildStats",
+    "SzavkorRecord",
+    "build_precinct_gdf",
+    "composite_precinct_id",
     "load_processed_geojson",
+    "load_processed_geoparquet",
     "load_szavkor_settlement_json",
+    "parse_poligon",
+    "raw_precinct_list_total",
     "write_processed_geojson",
+    "write_processed_geoparquet",
 ]

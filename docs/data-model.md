@@ -31,13 +31,27 @@ The repository includes **`data/raw/szavkor_topo/`**: on the order of **3,177** 
 
 ### Pipeline note
 
-Downstream tools (GeoPandas, `shapely`, `redist`-style graphs) expect standard geometries. Plan an ETL step that parses `poligon` into rings, builds `Polygon` / `MultiPolygon` features, and optionally emits **GeoJSON** or **GeoPackage** under `data/processed/` with the same `maz` / `taz` / `szk` properties.
+Downstream tools (GeoPandas, `shapely`, `redist`-style graphs) expect standard geometries. The implemented ETL parses `poligon` into rings and writes a national layer under `data/processed/` (see below).
+
+### ETL and geometry repair (implemented)
+
+The library builds a single precinct table from all settlement files via `hungary_ge.io.build_precinct_gdf`, or from the repo root:
+
+```bash
+uv run python scripts/build_precinct_layer.py
+```
+
+**Provenance:** `header.generated` and related header fields are NVI-style extract metadata; treat as provenance until mapped to official catalogues.
+
+**Invalid / messy rings:** Vertex order follows the published `poligon` strings (comma-separated `"lat lon"` pairs, WGS84). Repair order is: `shapely.make_valid`, then `buffer(0)` if still invalid; rows that cannot be reduced to a non-empty `Polygon` or `MultiPolygon` are **dropped** and logged in the optional build manifest. Duplicate `precinct_id` values (should not occur) keep the first row.
+
+**QA:** Compare `raw_precinct_list_total(szavkor_root)` (sum of `list` lengths) to the output row count plus dropped rows recorded in the manifest.
 
 ---
 
-## Canonical analysis form: precinct GeoJSON (processed)
+## Canonical analysis form: precinct layer (processed)
 
-After conversion (or if you ingest third-party GeoJSON), the canonical artifact is a **GeoJSON** `FeatureCollection` whose features are **precinct polygons** (or multipolygons) with at least county, settlement, and precinct attributes (aligned with `maz`, `taz`, `szk` above).
+After conversion (or if you ingest third-party GeoJSON), the canonical artifact is a **GeoParquet** or **GeoJSON** layer whose features are **precinct polygons** (or multipolygons) with at least county, settlement, precinct, and **`precinct_id`** (`maz-taz-szk`).
 
 **Empirical stack (checklist):** To run ensemble comparisons end-to-end you still need **votable results** at (or aggregable to) the same geographic level as these precincts, plus a **reference enacted OEVK map** (106 districts) to compare against simulated plans.
 
@@ -76,12 +90,13 @@ Build outputs and derived layers use **fixed basenames** under **`data/processed
 
 | Basename | Role |
 |----------|------|
-| `precincts.geojson` | Canonical precinct polygon layer; features must carry `precinct_id` (`maz-taz-szk`). |
+| `precincts.parquet` | **Preferred** canonical precinct layer (GeoParquet); columns include `maz`, `taz`, `szk`, `precinct_id`, `geometry`. |
+| `precincts.geojson` | Optional interchange / inspection copy of the same layer. |
 | `precinct_votes.parquet` | Vote / population table keyed by `precinct_id`. |
 | `ensemble_assignments.parquet` | Simulated plans: rows = precincts (same order as the canonical layer), columns = draws; column semantics TBD. |
 | `focal_oevk.parquet` | Enacted or focal plan: `precinct_id → oevk_id` (Parquet narrow table or equivalent). JSON is acceptable for small mapping files if you document the schema. |
 
-**Optional reproducibility:** write stdlib JSON manifests under `data/processed/manifests/<build_id>.json` (input checksums, CRS, software versions). No extra config format is required.
+**Optional reproducibility:** the ETL script writes `data/processed/manifests/precincts_etl.json` by default (row counts, SHA-256 of the parquet output, CRS). Other manifests may use `data/processed/manifests/<build_id>.json` (stdlib JSON).
 
 ## Code layout and `data/processed/` artifacts
 
@@ -89,9 +104,9 @@ The [`src/hungary_ge/`](../src/hungary_ge/) package aligns pipeline code with th
 
 | Artifact | Path | Consumed by (module) |
 |----------|------|----------------------|
-| Canonical precinct GeoJSON | `data/processed/precincts.geojson` | `hungary_ge.io.load_processed_geojson` → `problem` + `graph` |
+| Canonical precinct layer | `data/processed/precincts.parquet` (preferred) or `precincts.geojson` | `hungary_ge.io.load_processed_geoparquet` / `load_processed_geojson` → `problem` + `graph` |
 | Votes / population table | `data/processed/precinct_votes.parquet` | joined on `precinct_id` (`maz-taz-szk`) for `metrics` |
 | Ensemble assignments | `data/processed/ensemble_assignments.parquet` | loaded into `hungary_ge.ensemble.PlanEnsemble` |
 | Focal enacted plan | `data/processed/focal_oevk.parquet` | compared via `hungary_ge.metrics` |
 
-See [methodology.md](methodology.md) **Code layout** and [`AGENTS.md`](../AGENTS.md) for the full ALARM-stage → submodule map. Stub I/O and sampling functions document intended implementations; they are not yet wired to real files.
+See [methodology.md](methodology.md) **Code layout** and [`AGENTS.md`](../AGENTS.md) for the full ALARM-stage → submodule map. Sampling and metrics remain stubs until later slices.
