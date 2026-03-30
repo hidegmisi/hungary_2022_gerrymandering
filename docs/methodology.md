@@ -55,3 +55,7 @@ ALARM’s reference implementations often use the **redist** R package for MCMC 
 The Python package under [`src/hungary_ge/`](../src/hungary_ge/) follows the same stages as [alarm-methodology.md](alarm-methodology.md): **I/O and problem spec** (`io`, `problem`) → **adjacency** (`graph`) → **constraints and sampling** (`constraints`, `sampling`) → **ensemble storage** (`ensemble`) → **diagnostics and partisan metrics** (`diagnostics`, `metrics`). Public types include `OevkProblem` (problem metadata) and `PlanEnsemble` (assignments matrix); stub functions raise `NotImplementedError` until ETL and samplers are wired. See [`AGENTS.md`](../AGENTS.md) for the submodule table.
 
 Processed geometries and ensemble outputs should live under **`data/processed/`** (GeoJSON or GeoPackage for precincts; parquet or similar for assignment tables) as described in [`data-model.md`](data-model.md).
+
+## Implementation roadmap
+
+Phased slices, dependencies, suggested types (`PrecinctIndexMap`, `AdjacencyGraph`, `ConstraintSpec`), and a sub-plan template live in [`master-plan.md`](master-plan.md).
