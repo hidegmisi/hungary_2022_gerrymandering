@@ -18,6 +18,7 @@ import argparse
 import hashlib
 import json
 import sys
+from dataclasses import asdict
 from pathlib import Path
 from typing import Any
 
@@ -25,6 +26,7 @@ from hungary_ge.config import ProcessedPaths
 from hungary_ge.io import (
     GapBuildOptions,
     GapShellSource,
+    HexVoidOptions,
     build_gap_features_all_counties,
     build_precinct_gdf,
     merge_szvk_and_gaps,
@@ -135,6 +137,58 @@ def main() -> int:
         default=0.0,
         help="Buffer (meters) applied to precinct union before difference (micro-gaps)",
     )
+    parser.add_argument(
+        "--void-hex",
+        action="store_true",
+        help="With --with-gaps: subdivide large voids into hex cells (requires --with-gaps)",
+    )
+    parser.add_argument(
+        "--void-hex-cell-area-m2",
+        type=float,
+        default=None,
+        help="Fixed hex cell area (m²); overrides median-based auto sizing",
+    )
+    parser.add_argument(
+        "--void-hex-area-factor",
+        type=float,
+        default=1.0,
+        help="Auto cell area = median_szvk_area * factor (after clamps)",
+    )
+    parser.add_argument(
+        "--void-hex-subdivide-min-factor",
+        type=float,
+        default=4.0,
+        help="Subdivide void if area >= median_szvk_area * this factor (unless --void-hex-subdivide-min-m2)",
+    )
+    parser.add_argument(
+        "--void-hex-subdivide-min-m2",
+        type=float,
+        default=None,
+        help="Subdivide void if area >= this (m²); overrides factor-based threshold",
+    )
+    parser.add_argument(
+        "--void-hex-min-cell-m2",
+        type=float,
+        default=10_000.0,
+        help="Clamp: minimum auto hex cell area (m²)",
+    )
+    parser.add_argument(
+        "--void-hex-max-cell-m2",
+        type=float,
+        default=5_000_000.0,
+        help="Clamp: maximum auto hex cell area (m²)",
+    )
+    parser.add_argument(
+        "--void-hex-max-cells-per-gap",
+        type=int,
+        default=200_000,
+        help="Safety cap on hex cells per raw gap polygon",
+    )
+    parser.add_argument(
+        "--void-hex-no-auto",
+        action="store_true",
+        help="Disable median-based sizing (requires --void-hex-cell-area-m2)",
+    )
     args = parser.parse_args()
 
     repo_root = args.repo_root.resolve()
@@ -152,9 +206,19 @@ def main() -> int:
     raw_total = raw_precinct_list_total(szavkor)
     gdf, stats = build_precinct_gdf(szavkor)
 
+    if args.void_hex and not args.with_gaps:
+        print("--void-hex requires --with-gaps", file=sys.stderr)
+        return 2
+
     gap_stats_payload: dict[str, object] | None = None
     shell_sha: str | None = None
     if args.with_gaps:
+        if args.void_hex and args.void_hex_no_auto and args.void_hex_cell_area_m2 is None:
+            print(
+                "--void-hex-no-auto requires --void-hex-cell-area-m2",
+                file=sys.stderr,
+            )
+            return 2
         if args.shell is None:
             print("--shell is required when using --with-gaps", file=sys.stderr)
             return 2
@@ -170,11 +234,25 @@ def main() -> int:
             layer=args.shell_layer,
         )
         shell_gdf = read_shell_gdf(shell_src)
+        hex_void: HexVoidOptions | None = None
+        if args.void_hex:
+            hex_void = HexVoidOptions(
+                enabled=True,
+                auto_size=not args.void_hex_no_auto,
+                hex_area_factor=args.void_hex_area_factor,
+                hex_cell_area_m2=args.void_hex_cell_area_m2,
+                subdivide_min_void_m2=args.void_hex_subdivide_min_m2,
+                subdivide_min_void_factor=args.void_hex_subdivide_min_factor,
+                hex_min_cell_area_m2=args.void_hex_min_cell_m2,
+                hex_max_cell_area_m2=args.void_hex_max_cell_m2,
+                max_cells_per_gap=args.void_hex_max_cells_per_gap,
+            )
         gap_opts = GapBuildOptions(
             metric_crs=args.gap_metric_crs,
             min_area_m2=args.gap_min_area_m2,
             void_id_prefix=args.gap_void_prefix,
             precinct_union_buffer_m=args.gap_precinct_union_buffer_m,
+            hex_void=hex_void,
         )
         gaps, gap_stats = build_gap_features_all_counties(
             shell_gdf,
@@ -188,8 +266,13 @@ def main() -> int:
             "n_shell_features_read": gap_stats.n_shell_features_read,
             "n_counties_processed": gap_stats.n_counties_processed,
             "n_gap_polygons": gap_stats.n_gap_polygons,
+            "n_gap_polygons_raw": gap_stats.n_gap_polygons_raw,
+            "n_void_cells_after_hex": gap_stats.n_void_cells_after_hex,
             "n_dropped_below_min_area": gap_stats.n_dropped_below_min_area,
             "total_gap_area_m2": gap_stats.total_gap_area_m2,
+            "median_szvk_area_m2": gap_stats.median_szvk_area_m2,
+            "hex_cell_area_m2_used": gap_stats.hex_cell_area_m2_used,
+            "n_hex_cells_truncated": gap_stats.n_hex_cells_truncated,
             "per_maz": gap_stats.per_maz,
             "options": {
                 "metric_crs": gap_opts.metric_crs,
@@ -199,6 +282,8 @@ def main() -> int:
                 "shell_buffer_m": gap_opts.shell_buffer_m,
             },
         }
+        if hex_void is not None:
+            gap_stats_payload["hex_void"] = asdict(hex_void)
         if gap_stats.warnings:
             gap_stats_payload["warnings"] = gap_stats.warnings[:500]
 

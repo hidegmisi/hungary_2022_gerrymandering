@@ -13,6 +13,11 @@ from hungary_ge.io.gaps import (
     merge_szvk_and_gaps,
     read_shell_gdf,
 )
+from hungary_ge.io.gaps_hex import (
+    HexVoidOptions,
+    circumradius_from_hex_area,
+    hex_area_from_circumradius,
+)
 from hungary_ge.io.geoio import (
     load_processed_geojson,
     load_processed_geoparquet,
@@ -35,6 +40,9 @@ __all__ = [
     "GapBuildOptions",
     "GapBuildStats",
     "GapShellSource",
+    "HexVoidOptions",
+    "circumradius_from_hex_area",
+    "hex_area_from_circumradius",
     "PrecinctBuildStats",
     "SzavkorRecord",
     "build_gap_features_all_counties",
