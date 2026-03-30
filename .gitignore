@@ -1,0 +1,46 @@
+# Python
+__pycache__/
+*.py[cod]
+*$py.class
+*.so
+.Python
+*.egg-info/
+.eggs/
+dist/
+build/
+*.egg
+
+# uv / virtual environments
+.venv/
+.uv/
+
+# Ruff
+.ruff_cache/
+
+# Testing / coverage
+.pytest_cache/
+.coverage
+htmlcov/
+
+# Editors / OS
+.idea/
+.vscode/
+*.swp
+.DS_Store
+Thumbs.db
+
+# Jupyter
+.ipynb_checkpoints/
+
+# Local / large geodata (keep raw GeoJSON and archives out of Git by default)
+data/raw/*.geojson
+data/raw/*.zip
+data/raw/*.gpkg
+data/raw/*.shp
+data/raw/*.dbf
+data/raw/*.shx
+data/raw/*.prj
+data/raw/*.cpg
+
+# Generated outputs (uncomment if you prefer not to track ensemble outputs)
+# results/
