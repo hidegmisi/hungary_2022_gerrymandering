@@ -44,3 +44,7 @@ data/raw/*.cpg
 
 # Generated outputs (uncomment if you prefer not to track ensemble outputs)
 # results/
+
+# Large processed spatial layers (keep manifests / small artifacts if desired)
+data/processed/*.parquet
+data/processed/*.geojson
