@@ -26,6 +26,13 @@ The repository includes **`data/raw/szavkor_topo/`**: on the order of **3,177** 
 | `szk` | Precinct index within the settlement (szavazókör; string, zero-padded) |
 | `centrum` | Single point as `"<lat> <lon>"` (space-separated decimals) |
 | `poligon` | Closed-ring outline as comma-separated `"<lat> <lon>"` vertices (same order as published; parse as WGS84) |
+| `voters` | Optional: votes cast (or electorate count—project treats as **votes cast** when present); integer |
+| `listVotes` | Optional: object mapping **string list registry ids** (e.g. `"952"`) → vote counts; **list votes only** for partisan metrics |
+| `oevk_id` | Optional: enacted OEVK id **unique within** county `maz` (string or int in JSON) |
+| `oevk_id_full` | Optional: enacted OEVK id **unique nationally** (string or int); canonical focal district key |
+| `name`, `allowsReg`, … | Other fields may appear; electoral ETL reads the columns above when building Slice 4 artifacts |
+
+**List → column mapping:** Party/list semantics are **not** embedded in geometry extracts. The repo ships an editable JSON map ([`src/hungary_ge/io/data/election_2022_list_map.json`](../src/hungary_ge/io/data/election_2022_list_map.json)): each `listVotes` key maps to a stable Parquet column (`votes_*`). Extend this file as official list metadata is confirmed; unmapped keys produce **warnings** (or errors in strict ETL mode).
 
 **Precinct identifier:** Use a stable composite key, e.g. **`{maz}-{taz}-{szk}`**, for joins and graph nodes. Coordinates read as **EPSG:4326** (decimal degrees; latitude first in the source strings).
 
@@ -110,6 +117,38 @@ NVI polygons do not tile all land (e.g. uninhabited belts around cities). Option
 
 Implementation types: [`hungary_ge.io.gaps`](../src/hungary_ge/io/gaps.py) (**`GapShellSource`**, **`GapBuildOptions`** including **`hex_void`**, **`GapBuildStats`**, **`read_shell_gdf`**, **`build_gap_features_*`**, **`merge_szvk_and_gaps`**) and [`hungary_ge.io.gaps_hex`](../src/hungary_ge/io/gaps_hex.py) (**`HexVoidOptions`**, tessellation helpers).
 
+### Electoral tables (Slice 4): `precinct_votes.parquet` and `focal_oevk_assignments.parquet`
+
+Built from the same `szavkor_topo` walk as geometry ETL via [`hungary_ge.io.electoral_etl`](../src/hungary_ge/io/electoral_etl.py) and [`scripts/build_precinct_votes.py`](../scripts/build_precinct_votes.py).
+
+**Scope:** **List votes only** (no invalid/blank ballot columns required). **`voters`** is documented as votes cast when present. **Census population** is out of scope for this artifact; use `voters` or another column as an optional weight when wiring [`OevkProblem`](../src/hungary_ge/problem/oevk_problem.py). **Void (`gap`) rows** are not in raw JSON—after merging gap polygons into the canonical layer, use [`join_electoral_to_gdf`](../src/hungary_ge/io/electoral_etl.py) so void rows do not receive imputed party votes (vote columns stay null).
+
+#### `precinct_votes.parquet`
+
+| Column | Type | Notes |
+|--------|------|--------|
+| `precinct_id` | string | **`maz-taz-szk`**; primary key; one row per szvk precinct |
+| `maz`, `taz`, `szk` | string | Copy from JSON (QA / joins) |
+| `voters` | int64 (nullable) | Optional; votes cast when present |
+| `votes_*` | int64 | One column per **mapped** `listVotes` key (names from list map JSON) |
+| `election_year` | int32 (nullable) | From list map file |
+| `header_vl_id`, `header_nvv_id` | int64 (nullable) | Copied from each record’s settlement file `header` (provenance) |
+
+All vote columns are **valid list totals** only.
+
+#### `focal_oevk_assignments.parquet`
+
+| Column | Type | Notes |
+|--------|------|--------|
+| `precinct_id` | string | Primary key; unique |
+| `oevk_id_full` | string | **Canonical** enacted district id (national uniqueness); stored as string for stable joins |
+| `oevk_id` | string (nullable) | County-scoped id when present |
+| `maz` | string (nullable) | County code |
+
+Derived from **`oevk_id_full`** (and related fields) on each precinct record in raw JSON—no OEVK boundary overlay in v1.
+
+**Loaders:** [`load_votes_table`](../src/hungary_ge/io/electoral_etl.py), [`load_focal_assignments`](../src/hungary_ge/io/electoral_etl.py); validate focal uniqueness with [`assert_focal_assignments_valid`](../src/hungary_ge/io/electoral_etl.py).
+
 ## Derived representations (future)
 
 - **Assignment vector:** For each simulated plan, a mapping `precinct_id → oevk_id` (integer labels 1 … 106 or official OEVK codes)
@@ -135,7 +174,7 @@ Build outputs and derived layers use **fixed basenames** under **`data/processed
 | `precincts.geojson` | Optional interchange / inspection copy of the same layer. |
 | `precinct_votes.parquet` | Vote / population table keyed by `precinct_id`. |
 | `ensemble_assignments.parquet` | Simulated plans: rows = precincts (same order as the canonical layer), columns = draws; column semantics TBD. |
-| `focal_oevk.parquet` | Enacted or focal plan: `precinct_id → oevk_id` (Parquet narrow table or equivalent). JSON is acceptable for small mapping files if you document the schema. |
+| `focal_oevk_assignments.parquet` | Enacted plan: `precinct_id`, `oevk_id_full` (national id), optional `oevk_id`, `maz`. |
 | `graph/adjacency_edges.parquet` (+ `.meta.json`) | Undirected contiguity edges (`i`,`j`) in `PrecinctIndexMap` index space; from [`save_adjacency`](../src/hungary_ge/graph/adjacency_io.py). |
 
 **Optional reproducibility:** the ETL script writes `data/processed/manifests/precincts_etl.json` by default (row counts, SHA-256 of the parquet output, CRS). Other manifests may use `data/processed/manifests/<build_id>.json` (stdlib JSON).
@@ -150,6 +189,6 @@ The [`src/hungary_ge/`](../src/hungary_ge/) package aligns pipeline code with th
 | Adjacency edges | `data/processed/graph/adjacency_edges.parquet` | `hungary_ge.graph.save_adjacency` / `load_adjacency` |
 | Votes / population table | `data/processed/precinct_votes.parquet` | joined on `precinct_id` (`maz-taz-szk`) for `metrics` |
 | Ensemble assignments | `data/processed/ensemble_assignments.parquet` | loaded into `hungary_ge.ensemble.PlanEnsemble` |
-| Focal enacted plan | `data/processed/focal_oevk.parquet` | compared via `hungary_ge.metrics` |
+| Focal enacted plan | `data/processed/focal_oevk_assignments.parquet` | compared via `hungary_ge.metrics` (when implemented) |
 
 See [methodology.md](methodology.md) **Code layout** and [`AGENTS.md`](../AGENTS.md) for the full ALARM-stage → submodule map. Sampling and metrics remain stubs until later slices.

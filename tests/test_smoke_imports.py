@@ -18,7 +18,7 @@ def test_import_libpysal() -> None:
 def test_processed_paths_constant_basenames() -> None:
     from hungary_ge import (
         ENSEMBLE_ASSIGNMENTS_PARQUET,
-        FOCAL_OEVK_PARQUET,
+        FOCAL_OEVK_ASSIGNMENTS_PARQUET,
         PRECINCT_VOTES_PARQUET,
         PRECINCTS_GEOJSON,
     )
@@ -26,4 +26,4 @@ def test_processed_paths_constant_basenames() -> None:
     assert PRECINCTS_GEOJSON == "precincts.geojson"
     assert PRECINCT_VOTES_PARQUET == "precinct_votes.parquet"
     assert ENSEMBLE_ASSIGNMENTS_PARQUET == "ensemble_assignments.parquet"
-    assert FOCAL_OEVK_PARQUET == "focal_oevk.parquet"
+    assert FOCAL_OEVK_ASSIGNMENTS_PARQUET == "focal_oevk_assignments.parquet"
