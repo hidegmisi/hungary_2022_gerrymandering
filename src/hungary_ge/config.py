@@ -17,6 +17,8 @@ FOCAL_OEVK_PARQUET = "focal_oevk.parquet"
 
 PROCESSED_DIR = Path("data/processed")
 MANIFESTS_DIR = Path("data/processed/manifests")
+GRAPH_DIR = Path("data/processed/graph")
+ADJACENCY_EDGES_PARQUET = "adjacency_edges.parquet"
 
 
 @dataclass(frozen=True)
@@ -56,3 +58,11 @@ class ProcessedPaths:
     def manifest_json(self, build_id: str) -> Path:
         """Optional reproducibility manifest: ``manifests/{build_id}.json``."""
         return self.manifests_dir / f"{build_id}.json"
+
+    @property
+    def graph_dir(self) -> Path:
+        return self.repo_root / GRAPH_DIR
+
+    @property
+    def adjacency_edges_parquet(self) -> Path:
+        return self.graph_dir / ADJACENCY_EDGES_PARQUET

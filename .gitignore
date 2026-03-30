@@ -48,3 +48,6 @@ data/raw/*.cpg
 # Large processed spatial layers (keep manifests / small artifacts if desired)
 data/processed/*.parquet
 data/processed/*.geojson
+data/processed/graph/*.parquet
+data/processed/graph/*.json
+data/processed/graph/*.html

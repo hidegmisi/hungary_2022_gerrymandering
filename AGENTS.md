@@ -37,7 +37,7 @@ Prefer **relative paths** in scripts and notebooks so runs are reproducible acro
 ## Tooling
 
 - **Python:** 3.12+ (see `.python-version`).
-- **Dependencies:** [uv](https://docs.astral.sh/uv/) — `uv sync`, `uv run …`.
+- **Dependencies:** [uv](https://docs.astral.sh/uv/) — `uv sync`, `uv run …`. Optional **visualization** extras: `uv sync --extra viz` (Folium adjacency map script).
 - **Verification (Slice 0):** after `uv sync`, confirm the geospatial stack and package import:
   `uv run python -c "import geopandas; import hungary_ge"`
 - **Lint / format:** Ruff — `uv run ruff check src`, `uv run ruff format src`.

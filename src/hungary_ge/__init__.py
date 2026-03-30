@@ -9,8 +9,10 @@ Pipeline stages mirror ALARM / ``redist`` (see ``docs/alarm-methodology.md``):
 """
 
 from hungary_ge.config import (
+    ADJACENCY_EDGES_PARQUET,
     ENSEMBLE_ASSIGNMENTS_PARQUET,
     FOCAL_OEVK_PARQUET,
+    GRAPH_DIR,
     PRECINCT_VOTES_PARQUET,
     PRECINCTS_GEOJSON,
     PRECINCTS_PARQUET,
@@ -19,7 +21,16 @@ from hungary_ge.config import (
 )
 from hungary_ge.diagnostics import summarize_ensemble
 from hungary_ge.ensemble import PlanEnsemble
-from hungary_ge.graph import build_adjacency
+from hungary_ge.graph import (
+    AdjacencyBuildOptions,
+    AdjacencyGraph,
+    AdjacencyPatch,
+    adjacency_summary,
+    apply_adjacency_patch,
+    build_adjacency,
+    load_adjacency,
+    save_adjacency,
+)
 from hungary_ge.io import (
     PrecinctBuildStats,
     build_precinct_gdf,
@@ -43,27 +54,36 @@ from hungary_ge.sampling import sample_plans
 
 __all__ = [
     "DEFAULT_NDISTS",
+    "ADJACENCY_EDGES_PARQUET",
     "ENSEMBLE_ASSIGNMENTS_PARQUET",
     "FOCAL_OEVK_PARQUET",
+    "GRAPH_DIR",
     "PRECINCTS_GEOJSON",
     "PRECINCTS_PARQUET",
     "PRECINCT_VOTES_PARQUET",
     "PROCESSED_DIR",
     "ProcessedPaths",
+    "AdjacencyBuildOptions",
+    "AdjacencyGraph",
+    "AdjacencyPatch",
     "PrecinctBuildStats",
     "PrecinctIndexMap",
     "ProblemFrameValidationError",
     "OevkProblem",
     "PlanEnsemble",
+    "adjacency_summary",
+    "apply_adjacency_patch",
     "build_adjacency",
     "build_precinct_gdf",
     "load_processed_geojson",
+    "load_adjacency",
     "load_processed_geoparquet",
     "load_szavkor_settlement_json",
     "partisan_metrics",
     "prepare_precinct_layer",
     "raw_precinct_list_total",
     "sample_plans",
+    "save_adjacency",
     "summarize_ensemble",
     "validate_problem_frame",
     "write_processed_geojson",

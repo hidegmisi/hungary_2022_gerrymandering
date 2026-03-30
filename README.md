@@ -11,6 +11,8 @@ This project quantifies gerrymandering in Hungary by generating a large ensemble
 uv sync
 ```
 
+Optional **Folium** map of adjacency (for exploration): `uv sync --extra viz`.
+
 - Smoke test (GeoPandas + editable package import):
 
 ```bash
@@ -40,6 +42,16 @@ uv run python scripts/build_precinct_layer.py
 This writes `data/processed/precincts.parquet` and, by default, `data/processed/manifests/precincts_etl.json` (counts, dropped rows, SHA-256 of the parquet). Use `--out-geojson path` for a GeoJSON copy. Geometry repair and provenance are documented in [`docs/data-model.md`](docs/data-model.md) (ETL subsection).
 
 Other processed artifacts (graphs, votes tables, ensemble outputs) also go under `data/processed/` per the data model.
+
+### Adjacency map (optional)
+
+After `precincts.parquet` exists, with `uv sync --extra viz`:
+
+```bash
+uv run python scripts/map_adjacency.py --maz 01 --out data/processed/graph/adjacency_map.html
+```
+
+Subsets by county (`maz`) and caps edges/features so the HTML stays usable. See [`docs/data-model.md`](docs/data-model.md) (adjacency subsection).
 
 ### Python package layout
 

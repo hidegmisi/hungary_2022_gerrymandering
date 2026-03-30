@@ -83,9 +83,21 @@ Before adjacency or simulation, tie the layer to an [`OevkProblem`](../src/hunga
 
 [`PrecinctIndexMap`](../src/hungary_ge/problem/precinct_index_map.py) maps row index `i` ↔ `precinct_id` so [`PlanEnsemble`](../src/hungary_ge/ensemble/plan_ensemble.py) row order matches the sorted frame. Optional `OevkProblem.with_artifact` records paths/checksums for processed layers without loading files in the constructor.
 
+### Adjacency (contiguity graph)
+
+Build weights with [`build_adjacency`](../src/hungary_ge/graph/adjacency.py) after [`prepare_precinct_layer`](../src/hungary_ge/problem/precinct_index_map.py). Integer node indices **`0 … n-1`** match the sorted `GeoDataFrame` and [`PrecinctIndexMap`](../src/hungary_ge/problem/precinct_index_map.py).
+
+| Mode | Rule |
+|------|------|
+| **Queen** | Two precincts are neighbors if their polygons share at least a **boundary segment or a vertex** (libpysal queen contiguity). |
+| **Rook** | Neighbors share a **boundary segment** only (shared vertex alone does not count). |
+
+**Persistence:** undirected edges `i < j` in `data/processed/graph/adjacency_edges.parquet` with metadata in `adjacency_edges.meta.json` (same basename). **Patches** (optional) use JSON: `{"add": [[i,j], ...], "remove": [[i,j], ...]}` in index space, applied via [`apply_adjacency_patch`](../src/hungary_ge/graph/adjacency_io.py).
+
+**Visualization:** optional Folium HTML (`uv sync --extra viz`, then `scripts/map_adjacency.py`) draws centroid–centroid lines; use a **county filter** (`--maz`) or edge caps for national data.
+
 ## Derived representations (future)
 
-- **Adjacency graph:** Nodes = precincts; edges = pairs of precincts sharing a boundary (possibly with queen vs rook contiguity choice)
 - **Assignment vector:** For each simulated plan, a mapping `precinct_id → oevk_id` (integer labels 1 … 106 or official OEVK codes)
 - **Population or votes:** Tabular join on `precinct_id` (or finer units aggregated to precinct) for balance and outcome metrics
 
@@ -110,6 +122,7 @@ Build outputs and derived layers use **fixed basenames** under **`data/processed
 | `precinct_votes.parquet` | Vote / population table keyed by `precinct_id`. |
 | `ensemble_assignments.parquet` | Simulated plans: rows = precincts (same order as the canonical layer), columns = draws; column semantics TBD. |
 | `focal_oevk.parquet` | Enacted or focal plan: `precinct_id → oevk_id` (Parquet narrow table or equivalent). JSON is acceptable for small mapping files if you document the schema. |
+| `graph/adjacency_edges.parquet` (+ `.meta.json`) | Undirected contiguity edges (`i`,`j`) in `PrecinctIndexMap` index space; from [`save_adjacency`](../src/hungary_ge/graph/adjacency_io.py). |
 
 **Optional reproducibility:** the ETL script writes `data/processed/manifests/precincts_etl.json` by default (row counts, SHA-256 of the parquet output, CRS). Other manifests may use `data/processed/manifests/<build_id>.json` (stdlib JSON).
 
@@ -120,6 +133,7 @@ The [`src/hungary_ge/`](../src/hungary_ge/) package aligns pipeline code with th
 | Artifact | Path | Consumed by (module) |
 |----------|------|----------------------|
 | Canonical precinct layer | `data/processed/precincts.parquet` (preferred) or `precincts.geojson` | `hungary_ge.io.load_processed_geoparquet` / `load_processed_geojson` → `problem` + `graph` |
+| Adjacency edges | `data/processed/graph/adjacency_edges.parquet` | `hungary_ge.graph.save_adjacency` / `load_adjacency` |
 | Votes / population table | `data/processed/precinct_votes.parquet` | joined on `precinct_id` (`maz-taz-szk`) for `metrics` |
 | Ensemble assignments | `data/processed/ensemble_assignments.parquet` | loaded into `hungary_ge.ensemble.PlanEnsemble` |
 | Focal enacted plan | `data/processed/focal_oevk.parquet` | compared via `hungary_ge.metrics` |
