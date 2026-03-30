@@ -17,6 +17,21 @@ This file helps humans and coding agents work consistently on the Hungary OEVK e
 | `data/processed/` | Derived tables, graphs, pipeline outputs |
 | `docs/` | Methodology, data model, references |
 
+### `hungary_ge` submodules (ALARM pipeline map)
+
+Stages follow [`docs/alarm-methodology.md`](docs/alarm-methodology.md) (`redist_map` → adjacency → sampling → `redist_plans` → diagnostics / metrics). R name is for analogy only.
+
+| Submodule | ALARM / `redist` role |
+|-----------|------------------------|
+| `hungary_ge.io` | Load raw settlement JSON and processed precinct GeoJSON (`data/processed/`) |
+| `hungary_ge.problem` | Problem specification (`OevkProblem`; analogue of `redist_map` metadata) |
+| `hungary_ge.graph` | Adjacency / contiguity from geometries |
+| `hungary_ge.constraints` | Hungarian hard/soft constraints (placeholder) |
+| `hungary_ge.sampling` | Ensemble draws (`sample_plans`; R `redist` or Python later) |
+| `hungary_ge.ensemble` | Stored draws (`PlanEnsemble`; analogue of `redist_plans`) |
+| `hungary_ge.diagnostics` | Ensemble diagnostics (ESS, chain summaries, etc.) |
+| `hungary_ge.metrics` | Partisan outcome metrics vs focal plan |
+
 Prefer **relative paths** in scripts and notebooks so runs are reproducible across machines.
 
 ## Tooling

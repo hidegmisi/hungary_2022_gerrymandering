@@ -49,3 +49,9 @@ Until those rules are written down in this repo, the sampler is intentionally un
 ## Software note
 
 ALARM’s reference implementations often use the **redist** R package for MCMC / SMC sampling. This project may call R tooling, reimplement constraints in Python, or hybridize; that choice is deferred to implementation time.
+
+## Code layout (`hungary_ge`)
+
+The Python package under [`src/hungary_ge/`](../src/hungary_ge/) follows the same stages as [alarm-methodology.md](alarm-methodology.md): **I/O and problem spec** (`io`, `problem`) → **adjacency** (`graph`) → **constraints and sampling** (`constraints`, `sampling`) → **ensemble storage** (`ensemble`) → **diagnostics and partisan metrics** (`diagnostics`, `metrics`). Public types include `OevkProblem` (problem metadata) and `PlanEnsemble` (assignments matrix); stub functions raise `NotImplementedError` until ETL and samplers are wired. See [`AGENTS.md`](../AGENTS.md) for the submodule table.
+
+Processed geometries and ensemble outputs should live under **`data/processed/`** (GeoJSON or GeoPackage for precincts; parquet or similar for assignment tables) as described in [`data-model.md`](data-model.md).

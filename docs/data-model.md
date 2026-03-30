@@ -69,3 +69,16 @@ After conversion (or if you ingest third-party GeoJSON), the canonical artifact 
 
 - Ensemble catalog: identifiers or hashes for each simulated plan, storage format TBD (e.g. parquet of assignments, compact binary, or references to GeoPackages)
 - Summary tables: metric distributions across the ensemble and ranks/placements of focal plans
+
+## Code layout and `data/processed/` artifacts
+
+The [`src/hungary_ge/`](../src/hungary_ge/) package aligns pipeline code with this data model:
+
+| Artifact | Typical path | Consumed by (module) |
+|----------|--------------|----------------------|
+| Canonical precinct GeoJSON | `data/processed/precincts.geojson` (example name) | `hungary_ge.io.load_processed_geojson` → `problem` + `graph` |
+| Votes / population table | `data/processed/precinct_votes.parquet` (example) | joined on `precinct_id` (`maz-taz-szk`) for `metrics` |
+| Ensemble assignments | `data/processed/ensemble_assignments.parquet` (columns = draws, rows = precincts) | loaded into `hungary_ge.ensemble.PlanEnsemble` |
+| Focal enacted plan | mapping `precinct_id → oevk_id` | compared via `hungary_ge.metrics` |
+
+See [methodology.md](methodology.md) **Code layout** and [`AGENTS.md`](../AGENTS.md) for the full ALARM-stage → submodule map. Stub I/O and sampling functions document intended implementations; they are not yet wired to real files.

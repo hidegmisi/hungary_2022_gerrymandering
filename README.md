@@ -31,6 +31,10 @@ uv run ruff format src
 
 Processed artifacts (graphs, cleaned tables, converted geometries) go under `data/processed/`.
 
+### Python package layout
+
+The installable package [`src/hungary_ge/`](src/hungary_ge/) mirrors the ALARM simulation pipeline (problem spec → adjacency → sampling → plan ensemble → diagnostics and metrics). Submodule names and their match to `redist`-style stages are summarized in [`AGENTS.md`](AGENTS.md). Conceptual background: [`docs/alarm-methodology.md`](docs/alarm-methodology.md); artifact conventions: [`docs/data-model.md`](docs/data-model.md).
+
 ## Documentation
 
 - [Contributor / agent guide (`AGENTS.md`)](AGENTS.md) — layout, tooling, **Conventional Commits**
