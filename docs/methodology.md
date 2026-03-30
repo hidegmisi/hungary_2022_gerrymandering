@@ -8,7 +8,7 @@ This is the same broad logic used in academic redistricting simulation work: the
 
 ## Alignment with ALARM
 
-The [ALARM Project](https://alarm-redist.org/index.html) (Algorithm-Assisted Redistricting Methodology) develops and applies simulation-based methods for legislative redistricting. Their public releases emphasize:
+The [ALARM Project](https://alarm-redist.org/index.html) (Algorithm-Assisted Redistricting Methodology) develops and applies simulation-based methods for legislative redistricting. A longer, implementation-focused summary of ALARM’s simulation workflow (the `redist` pipeline, SMC vs MCMC, constraints, and diagnostics) lives in [alarm-methodology.md](alarm-methodology.md). Their public releases emphasize:
 
 - Large **ensembles** of plans sampled under **state-specific** rules and geographic data
 - Comparison of enacted or proposed plans to the ensemble on **outcome metrics** (partisan balance, competitiveness, representation, etc.), not to abstract norms from other jurisdictions

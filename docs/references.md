@@ -2,6 +2,7 @@
 
 ## ALARM and simulation tooling
 
+- **ALARM methodology (this repo — detailed note):** [alarm-methodology.md](alarm-methodology.md)
 - **ALARM Project (overview):** [https://alarm-redist.org/index.html](https://alarm-redist.org/index.html)
 - **50-State Redistricting Simulations:** [https://alarm-redist.github.io/fifty-states/](https://alarm-redist.github.io/fifty-states/)
 - **About / FAQ (methodology context):** [https://alarm-redist.github.io/fifty-states/about/](https://alarm-redist.github.io/fifty-states/about/)
