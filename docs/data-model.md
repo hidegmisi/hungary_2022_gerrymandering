@@ -68,6 +68,21 @@ After conversion (or if you ingest third-party GeoJSON), the canonical artifact 
 - Polygon or MultiPolygon per precinct
 - CRS: document explicitly (WGS **EPSG:4326** if converted without reprojection from `szavkor_topo`); reprojection for area-balanced constraints should be explicit (e.g. metric CRS for Hungarian extent)
 
+### Problem binding (column contract)
+
+Before adjacency or simulation, tie the layer to an [`OevkProblem`](../src/hungary_ge/problem/oevk_problem.py) using [`prepare_precinct_layer`](../src/hungary_ge/problem/precinct_index_map.py) (or [`PrecinctIndexMap.from_frame`](../src/hungary_ge/problem/precinct_index_map.py) plus [`validate_problem_frame`](../src/hungary_ge/problem/precinct_index_map.py)).
+
+| Requirement | Notes |
+|-------------|--------|
+| `precinct_id` (or `problem.precinct_id_column`) | Required; **unique**, non-null strings. **Canonical row order** is **lexicographic** by this column (stable sort). |
+| Active geometry column | Required; not all-empty. |
+| `maz` (or `problem.county_column`) | Required if `county_column` is set on the problem (default: `maz`). |
+| Settlement column | Required only if `problem.settlement_column` is non-`None`. |
+| `population` (or `problem.pop_column`) | Required only if `pop_column` is non-`None` (default name `population`; must be numeric). |
+| CRS | If `problem.crs` is set (default `EPSG:4326`), the frame’s CRS must match; if `problem.crs` is `None`, CRS is not checked. |
+
+[`PrecinctIndexMap`](../src/hungary_ge/problem/precinct_index_map.py) maps row index `i` ↔ `precinct_id` so [`PlanEnsemble`](../src/hungary_ge/ensemble/plan_ensemble.py) row order matches the sorted frame. Optional `OevkProblem.with_artifact` records paths/checksums for processed layers without loading files in the constructor.
+
 ## Derived representations (future)
 
 - **Adjacency graph:** Nodes = precincts; edges = pairs of precincts sharing a boundary (possibly with queen vs rook contiguity choice)

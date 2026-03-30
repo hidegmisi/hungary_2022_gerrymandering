@@ -31,7 +31,14 @@ from hungary_ge.io import (
     write_processed_geoparquet,
 )
 from hungary_ge.metrics import partisan_metrics
-from hungary_ge.problem import DEFAULT_NDISTS, OevkProblem
+from hungary_ge.problem import (
+    DEFAULT_NDISTS,
+    OevkProblem,
+    PrecinctIndexMap,
+    ProblemFrameValidationError,
+    prepare_precinct_layer,
+    validate_problem_frame,
+)
 from hungary_ge.sampling import sample_plans
 
 __all__ = [
@@ -44,6 +51,8 @@ __all__ = [
     "PROCESSED_DIR",
     "ProcessedPaths",
     "PrecinctBuildStats",
+    "PrecinctIndexMap",
+    "ProblemFrameValidationError",
     "OevkProblem",
     "PlanEnsemble",
     "build_adjacency",
@@ -52,9 +61,11 @@ __all__ = [
     "load_processed_geoparquet",
     "load_szavkor_settlement_json",
     "partisan_metrics",
+    "prepare_precinct_layer",
     "raw_precinct_list_total",
     "sample_plans",
     "summarize_ensemble",
+    "validate_problem_frame",
     "write_processed_geojson",
     "write_processed_geoparquet",
 ]

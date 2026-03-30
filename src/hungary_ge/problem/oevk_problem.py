@@ -7,7 +7,8 @@ Geographic units are expected as a GeoPandas GeoDataFrame joined elsewhere.
 
 from __future__ import annotations
 
-from dataclasses import dataclass, field
+from dataclasses import dataclass, field, replace
+from pathlib import Path
 
 # Default number of OEVK single-member districts under the post-2011 framework.
 DEFAULT_NDISTS = 106
@@ -35,6 +36,9 @@ class OevkProblem:
         crs: Coordinate reference system label (e.g. ``EPSG:4326``).
         pop_tol: Optional max fractional deviation from equal population per
             district (soft or hard depending on sampler).
+        artifact_path: Optional path to a canonical processed layer on disk
+            (metadata only; no I/O in the constructor).
+        artifact_sha256: Optional checksum for ``artifact_path``.
     """
 
     ndists: int = DEFAULT_NDISTS
@@ -45,8 +49,20 @@ class OevkProblem:
     vote_columns: tuple[str, ...] = field(default_factory=tuple)
     crs: str | None = "EPSG:4326"
     pop_tol: float | None = None
+    artifact_path: Path | None = None
+    artifact_sha256: str | None = None
 
     def __post_init__(self) -> None:
         if self.ndists < 1:
             msg = f"ndists must be >= 1, got {self.ndists}"
             raise ValueError(msg)
+
+    def with_artifact(
+        self,
+        path: Path | str,
+        *,
+        sha256: str | None = None,
+    ) -> OevkProblem:
+        """Return a copy with artifact metadata set (for reproducibility notes)."""
+        p = Path(path)
+        return replace(self, artifact_path=p, artifact_sha256=sha256)
