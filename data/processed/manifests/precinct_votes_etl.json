@@ -1,0 +1,31 @@
+{
+  "szavkor_root": "C:\\Users\\hideg\\Documents\\Projects\\hungary_2022_gerrymandering\\data\\raw\\szavkor_topo",
+  "party_map": "C:\\Users\\hideg\\Documents\\Projects\\hungary_2022_gerrymandering\\src\\hungary_ge\\io\\data\\election_2022_list_map.json",
+  "out_votes": "C:\\Users\\hideg\\Documents\\Projects\\hungary_2022_gerrymandering\\data\\processed\\precinct_votes.parquet",
+  "out_focal": "C:\\Users\\hideg\\Documents\\Projects\\hungary_2022_gerrymandering\\data\\processed\\focal_oevk_assignments.parquet",
+  "stats": {
+    "n_files_read": 3177,
+    "n_records_in": 10447,
+    "n_rows_votes": 10447,
+    "n_rows_focal": 10220,
+    "n_duplicate_precinct_id": 0,
+    "n_records_missing_oevk_full": 227,
+    "unknown_list_vote_keys": {
+      "955": 10220,
+      "954": 10220,
+      "948": 268,
+      "945": 212,
+      "943": 237,
+      "940": 569,
+      "947": 3590,
+      "939": 154,
+      "937": 425,
+      "944": 466,
+      "949": 435,
+      "938": 278,
+      "946": 325,
+      "941": 38
+    },
+    "n_warnings": 14
+  }
+}
