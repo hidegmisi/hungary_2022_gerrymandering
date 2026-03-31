@@ -184,6 +184,8 @@ def run_redist_pipeline(
         "n_sims": eff.n_sims,
         "n_runs": eff.n_runs,
         "pop_tol": eff.pop_tol,
+        "redist_stderr_path": str(result.stderr_path),
+        "redist_stdout_path": str(result.stdout_path),
     }
     return load_ensemble_from_redist_csv(
         result.assignments_csv,

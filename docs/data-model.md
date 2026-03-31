@@ -205,6 +205,22 @@ Rows = units (`precinct_id` + one column per draw). Draw columns are named `d000
 
 **Loaders:** [`save_plan_ensemble`](../src/hungary_ge/ensemble/persistence.py), [`load_plan_ensemble`](../src/hungary_ge/ensemble/persistence.py); lazy per-draw reads via [`load_plan_ensemble_draw_column`](../src/hungary_ge/ensemble/persistence.py).
 
+#### Diagnostics JSON (Slice 8)
+
+Optional **UTF-8 JSON** written next to the assignments Parquet (default basename `{parquet_stem}_diagnostics.json`, e.g. `ensemble_assignments_diagnostics.json` when the Parquet is `ensemble_assignments.parquet`). Produced by [`write_diagnostics_json`](../src/hungary_ge/diagnostics/report.py) or by passing ``diagnostics_report=`` into [`save_plan_ensemble`](../src/hungary_ge/ensemble/persistence.py). The ensemble sidecar manifest may list ``diagnostics_file`` with that basename.
+
+| Field | Meaning |
+|-------|---------|
+| `schema_version` | `hungary_ge.diagnostics/v1` |
+| `n_units`, `n_draws`, `ndists` | Shape and district count used for population parity |
+| `population` | Ideal population per district, total, per-draw **max absolute relative deviation** vs equal split, optional ``draws_exceeding_pop_tol`` |
+| `county_splits` | If ``county_ids`` were supplied: per-draw count of counties touching more than one district |
+| `chains` | If multiple SMC ``chain`` ids: univariate **R-hat** (clamped at 1) on per-draw scalars — max population deviation and optionally split counts |
+| `ensemble` | Counts of **unique** assignment columns vs duplicates |
+| `smc_log` | Best-effort scan of ``redist_stderr_path`` / ``redist_stdout_path`` from ``PlanEnsemble.metadata`` (e.g. ESS keyword hits) |
+
+**Void / gap units:** Pass a **full-length** ``populations`` vector (zeros on void rows) into [`summarize_ensemble`](../src/hungary_ge/diagnostics/__init__.py) so district totals match the sampling graph; do not drop void columns before diagnostics if the ensemble includes them.
+
 ## Processed artifacts (canonical names)
 
 Build outputs and derived layers use **fixed basenames** under **`data/processed/`** (large files are usually gitignored). The same names are exposed in code as `hungary_ge.config` / `hungary_ge.ProcessedPaths`.
@@ -214,7 +230,7 @@ Build outputs and derived layers use **fixed basenames** under **`data/processed
 | `precincts.parquet` | **Preferred** canonical precinct layer (GeoParquet); columns include `maz`, `taz`, `szk`, `precinct_id`, `geometry`. |
 | `precincts.geojson` | Optional interchange / inspection copy of the same layer. |
 | `precinct_votes.parquet` | Vote / population table keyed by `precinct_id`. |
-| `ensemble_assignments.parquet` | Simulated district assignments (Slice 7). **Default layout: long** — see [Ensemble assignments (Slice 7)](#ensemble-assignments-slice-7). Sidecar `ensemble_assignments.meta.json`. |
+| `ensemble_assignments.parquet` | Simulated district assignments (Slice 7). **Default layout: long** — see [Ensemble assignments (Slice 7)](#ensemble-assignments-slice-7). Sidecar `ensemble_assignments.meta.json`. Optional `ensemble_assignments_diagnostics.json` (Slice 8). |
 | `focal_oevk_assignments.parquet` | Enacted plan: `precinct_id`, `oevk_id_full` (national id), optional `oevk_id`, `maz`. |
 | `graph/adjacency_edges.parquet` (+ `.meta.json`) | Undirected contiguity edges (`i`,`j`) in `PrecinctIndexMap` index space; from [`save_adjacency`](../src/hungary_ge/graph/adjacency_io.py). |
 | `ensemble_assignments.meta.json` | Sidecar to `ensemble_assignments.parquet` (manifest: layout, `unit_ids`, draw metadata). |
@@ -230,7 +246,7 @@ The [`src/hungary_ge/`](../src/hungary_ge/) package aligns pipeline code with th
 | Canonical precinct layer | `data/processed/precincts.parquet` (preferred) or `precincts.geojson` | `hungary_ge.io.load_processed_geoparquet` / `load_processed_geojson` → `problem` + `graph` |
 | Adjacency edges | `data/processed/graph/adjacency_edges.parquet` | `hungary_ge.graph.save_adjacency` / `load_adjacency` |
 | Votes / population table | `data/processed/precinct_votes.parquet` | joined on `precinct_id` (`maz-taz-szk`) for `metrics` |
-| Ensemble assignments | `data/processed/ensemble_assignments.parquet` (+ `.meta.json`) | [`save_plan_ensemble`](../src/hungary_ge/ensemble/persistence.py), [`load_plan_ensemble`](../src/hungary_ge/ensemble/persistence.py) → `PlanEnsemble` |
+| Ensemble assignments | `data/processed/ensemble_assignments.parquet` (+ `.meta.json`, optional `…_diagnostics.json`) | [`save_plan_ensemble`](../src/hungary_ge/ensemble/persistence.py), [`load_plan_ensemble`](../src/hungary_ge/ensemble/persistence.py) → `PlanEnsemble`; [`summarize_ensemble`](../src/hungary_ge/diagnostics/__init__.py) |
 | Focal enacted plan | `data/processed/focal_oevk_assignments.parquet` | compared via `hungary_ge.metrics` (when implemented) |
 
 See [methodology.md](methodology.md) **Code layout** and [`AGENTS.md`](../AGENTS.md) for the full ALARM-stage → submodule map. Sampling and metrics remain stubs until later slices.

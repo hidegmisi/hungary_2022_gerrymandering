@@ -29,7 +29,7 @@ Stages follow [`docs/alarm-methodology.md`](docs/alarm-methodology.md) (`redist_
 | `hungary_ge.constraints` | `ConstraintSpec`, JSON serde, `check_plan` vs `AdjacencyGraph`; see `docs/oevk-constraints.md` |
 | `hungary_ge.sampling` | Ensemble draws (`sample_plans`; R `redist` or Python later) |
 | `hungary_ge.ensemble` | Stored draws (`PlanEnsemble`; analogue of `redist_plans`) |
-| `hungary_ge.diagnostics` | Ensemble diagnostics (ESS, chain summaries, etc.) |
+| `hungary_ge.diagnostics` | `summarize_ensemble`, `DiagnosticsReport`, JSON sidecar (`write_diagnostics_json`); optional redist log scrape via ensemble metadata paths |
 | `hungary_ge.metrics` | Partisan outcome metrics vs focal plan |
 
 Prefer **relative paths** in scripts and notebooks so runs are reproducible across machines.

@@ -14,6 +14,8 @@ PRECINCTS_PARQUET = "precincts.parquet"
 PRECINCT_VOTES_PARQUET = "precinct_votes.parquet"
 ENSEMBLE_ASSIGNMENTS_PARQUET = "ensemble_assignments.parquet"
 ENSEMBLE_ASSIGNMENTS_META = "ensemble_assignments.meta.json"
+# Sidecar to assignments parquet (same directory; default ``{stem}_diagnostics.json``).
+ENSEMBLE_ASSIGNMENTS_DIAGNOSTICS_JSON = "ensemble_assignments_diagnostics.json"
 FOCAL_OEVK_ASSIGNMENTS_PARQUET = "focal_oevk_assignments.parquet"
 
 PROCESSED_DIR = Path("data/processed")
@@ -55,6 +57,10 @@ class ProcessedPaths:
     @property
     def ensemble_assignments_meta(self) -> Path:
         return self.processed_dir / ENSEMBLE_ASSIGNMENTS_META
+
+    @property
+    def ensemble_assignments_diagnostics_json(self) -> Path:
+        return self.processed_dir / ENSEMBLE_ASSIGNMENTS_DIAGNOSTICS_JSON
 
     @property
     def focal_oevk_assignments_parquet(self) -> Path:

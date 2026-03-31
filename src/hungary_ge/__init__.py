@@ -10,6 +10,7 @@ Pipeline stages mirror ALARM / ``redist`` (see ``docs/alarm-methodology.md``):
 
 from hungary_ge.config import (
     ADJACENCY_EDGES_PARQUET,
+    ENSEMBLE_ASSIGNMENTS_DIAGNOSTICS_JSON,
     ENSEMBLE_ASSIGNMENTS_META,
     ENSEMBLE_ASSIGNMENTS_PARQUET,
     FOCAL_OEVK_ASSIGNMENTS_PARQUET,
@@ -29,8 +30,18 @@ from hungary_ge.constraints import (
     spec_from_json,
     spec_to_json,
 )
-from hungary_ge.diagnostics import summarize_ensemble
-from hungary_ge.ensemble import PlanEnsemble
+from hungary_ge.diagnostics import (
+    DIAGNOSTICS_SCHEMA_V1,
+    DiagnosticsReport,
+    summarize_ensemble,
+    write_diagnostics_json,
+)
+from hungary_ge.ensemble import (
+    ENSEMBLE_MANIFEST_SCHEMA_V1,
+    PlanEnsemble,
+    load_plan_ensemble,
+    save_plan_ensemble,
+)
 from hungary_ge.graph import (
     AdjacencyBuildOptions,
     AdjacencyGraph,
@@ -72,7 +83,10 @@ __all__ = [
     "ConstraintViolation",
     "ConstraintViolationReport",
     "DEFAULT_NDISTS",
+    "DIAGNOSTICS_SCHEMA_V1",
+    "DiagnosticsReport",
     "ADJACENCY_EDGES_PARQUET",
+    "ENSEMBLE_ASSIGNMENTS_DIAGNOSTICS_JSON",
     "ENSEMBLE_ASSIGNMENTS_META",
     "ENSEMBLE_ASSIGNMENTS_PARQUET",
     "ENSEMBLE_MANIFEST_SCHEMA_V1",
@@ -96,6 +110,7 @@ __all__ = [
     "ProblemFrameValidationError",
     "OevkProblem",
     "PlanEnsemble",
+    "load_plan_ensemble",
     "adjacency_summary",
     "apply_adjacency_patch",
     "check_plan",
@@ -113,6 +128,7 @@ __all__ = [
     "spec_to_json",
     "sample_plans",
     "save_plan_ensemble",
+    "write_diagnostics_json",
     "save_adjacency",
     "summarize_ensemble",
     "validate_problem_frame",

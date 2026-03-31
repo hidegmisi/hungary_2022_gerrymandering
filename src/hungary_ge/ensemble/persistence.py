@@ -13,6 +13,7 @@ import numpy as np
 import pandas as pd
 import pyarrow.dataset as pads
 
+from hungary_ge.diagnostics.report import DiagnosticsReport, write_diagnostics_json
 from hungary_ge.ensemble.plan_ensemble import PlanEnsemble
 
 ENSEMBLE_MANIFEST_SCHEMA_V1 = "hungary_ge.ensemble/v1"
@@ -31,6 +32,12 @@ _WIDE_COL_RE = re.compile(r"^d(\d{6})$")
 
 def _default_manifest_path(parquet_path: Path) -> Path:
     return parquet_path.with_suffix(".meta.json")
+
+
+def default_diagnostics_json_path(parquet_path: str | Path) -> Path:
+    """Default diagnostics path: same directory as parquet, ``{stem}_diagnostics.json``."""
+    p = Path(parquet_path)
+    return p.with_name(f"{p.stem}_diagnostics.json")
 
 
 def _wide_column_name(j: int) -> str:
@@ -54,8 +61,16 @@ def save_plan_ensemble(
     compression: str = "zstd",
     max_wide_draws: int = MAX_WIDE_DRAWS_DEFAULT,
     write_sha256: bool = True,
+    diagnostics_report: DiagnosticsReport | None = None,
+    diagnostics_path: str | Path | None = None,
 ) -> None:
-    """Write assignments to Parquet and a JSON sidecar manifest."""
+    """Write assignments to Parquet and a JSON sidecar manifest.
+
+    If ``diagnostics_report`` is set, also writes UTF-8 JSON diagnostics (Slice 8)
+    next to the Parquet (see :func:`default_diagnostics_json_path`) unless
+    ``diagnostics_path`` overrides the location. The manifest may include a
+    ``diagnostics_file`` basename when written.
+    """
     parquet_path = Path(parquet_path)
     parquet_path.parent.mkdir(parents=True, exist_ok=True)
 
@@ -110,6 +125,15 @@ def save_plan_ensemble(
         ]
     if write_sha256 and parquet_path.is_file():
         manifest["sha256"] = _hash_file(parquet_path)
+
+    if diagnostics_report is not None:
+        dpath = (
+            Path(diagnostics_path)
+            if diagnostics_path is not None
+            else default_diagnostics_json_path(parquet_path)
+        )
+        write_diagnostics_json(dpath, diagnostics_report)
+        manifest["diagnostics_file"] = dpath.name
 
     meta_path.write_text(
         json.dumps(manifest, indent=2, default=str) + "\n",
