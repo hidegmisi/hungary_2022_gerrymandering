@@ -1,10 +1,38 @@
-"""Hungarian OEVK and sampler constraints (hard vs soft).
+"""Hungarian OEVK and sampler constraints (hard vs soft, Slice 5).
 
-Hard constraints (population tolerance, contiguity, administrative splits)
-and soft targets (``redist_constr``-style) will be encoded here as the legal
-specification firms up. See docs/alarm-methodology.md.
+See ``docs/oevk-constraints.md`` and ``docs/alarm-methodology.md``.
 """
 
 from __future__ import annotations
 
-__all__: list[str] = []
+from hungary_ge.constraints.constraint_spec import (
+    SCHEMA_VERSION,
+    ConstraintSpec,
+    ContiguityConstraint,
+    CountyContainmentConstraint,
+    ElectorBalanceConstraint,
+    SoftConstraintWeight,
+    default_constraint_spec,
+    spec_from_json,
+    spec_to_json,
+)
+from hungary_ge.constraints.validate import (
+    ConstraintViolation,
+    ConstraintViolationReport,
+    check_plan,
+)
+
+__all__ = [
+    "SCHEMA_VERSION",
+    "ConstraintSpec",
+    "ConstraintViolation",
+    "ConstraintViolationReport",
+    "ContiguityConstraint",
+    "CountyContainmentConstraint",
+    "ElectorBalanceConstraint",
+    "SoftConstraintWeight",
+    "check_plan",
+    "default_constraint_spec",
+    "spec_from_json",
+    "spec_to_json",
+]

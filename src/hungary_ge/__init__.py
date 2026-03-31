@@ -19,6 +19,15 @@ from hungary_ge.config import (
     PROCESSED_DIR,
     ProcessedPaths,
 )
+from hungary_ge.constraints import (
+    ConstraintSpec,
+    ConstraintViolation,
+    ConstraintViolationReport,
+    check_plan,
+    default_constraint_spec,
+    spec_from_json,
+    spec_to_json,
+)
 from hungary_ge.diagnostics import summarize_ensemble
 from hungary_ge.ensemble import PlanEnsemble
 from hungary_ge.graph import (
@@ -58,6 +67,9 @@ from hungary_ge.problem import (
 from hungary_ge.sampling import sample_plans
 
 __all__ = [
+    "ConstraintSpec",
+    "ConstraintViolation",
+    "ConstraintViolationReport",
     "DEFAULT_NDISTS",
     "ADJACENCY_EDGES_PARQUET",
     "ENSEMBLE_ASSIGNMENTS_PARQUET",
@@ -83,6 +95,7 @@ __all__ = [
     "PlanEnsemble",
     "adjacency_summary",
     "apply_adjacency_patch",
+    "check_plan",
     "build_adjacency",
     "build_precinct_gdf",
     "load_processed_geojson",
@@ -90,8 +103,11 @@ __all__ = [
     "load_processed_geoparquet",
     "load_szavkor_settlement_json",
     "partisan_metrics",
+    "default_constraint_spec",
     "prepare_precinct_layer",
     "raw_precinct_list_total",
+    "spec_from_json",
+    "spec_to_json",
     "sample_plans",
     "save_adjacency",
     "summarize_ensemble",
