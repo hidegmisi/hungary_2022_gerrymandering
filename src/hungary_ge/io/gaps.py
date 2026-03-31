@@ -22,6 +22,21 @@ VOID_TAZ_PLACEHOLDER = "000"
 VOID_SZK_PLACEHOLDER = "000"
 
 
+def _geoms_for_unary_union(geoms: Any) -> list[Any]:
+    """Drop empties and apply ``buffer(0)`` so invalid rings survive ``unary_union``."""
+    out: list[Any] = []
+    for g in geoms:
+        if g is None or g.is_empty:
+            continue
+        try:
+            g2 = g.buffer(0)
+        except Exception:
+            g2 = g
+        if not g2.is_empty:
+            out.append(g2)
+    return out
+
+
 @dataclass(frozen=True)
 class GapShellSource:
     """Where to load county (or multi-county) shell polygons for gap extraction."""
@@ -186,11 +201,11 @@ def build_gap_features_for_maz(
     shell_m = shell_part.to_crs(opts.metric_crs)
     prec_m = prec_part.to_crs(opts.metric_crs)
 
-    shell_u: Any = unary_union(shell_m.geometry.tolist())
+    shell_u: Any = unary_union(_geoms_for_unary_union(shell_m.geometry))
     if opts.shell_buffer_m != 0.0:
         shell_u = shell_u.buffer(opts.shell_buffer_m)
 
-    prec_u: Any = unary_union(prec_m.geometry.tolist())
+    prec_u: Any = unary_union(_geoms_for_unary_union(prec_m.geometry))
     if opts.precinct_union_buffer_m > 0.0:
         prec_u = prec_u.buffer(opts.precinct_union_buffer_m)
 
