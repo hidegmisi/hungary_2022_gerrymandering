@@ -43,6 +43,16 @@ This writes `data/processed/precincts.parquet` and, by default, `data/processed/
 
 Other processed artifacts (graphs, votes tables, ensemble outputs) also go under `data/processed/` per the data model.
 
+### Pilot pipeline (ETL → votes → graph)
+
+Slice 10 bundles the default **processed-data** steps in one command (optional Folium **viz** stage needs `uv sync --extra viz`):
+
+```bash
+uv run python scripts/run_pilot_pipeline.py
+```
+
+Same runner as `uv run python -m hungary_ge.pipeline` or `uv run hungary-ge-pipeline`. Commands, inputs, graph-only runs, and **pytest** marker behavior are documented in [`REPRODUCIBILITY.md`](REPRODUCIBILITY.md).
+
 ### Adjacency map (optional)
 
 After `precincts.parquet` exists, with `uv sync --extra viz`:
@@ -59,6 +69,7 @@ The installable package [`src/hungary_ge/`](src/hungary_ge/) mirrors the ALARM s
 
 ## Documentation
 
+- [Reproducibility (`REPRODUCIBILITY.md`)](REPRODUCIBILITY.md) — pilot pipeline commands, inputs, optional R/tests
 - [Contributor / agent guide (`AGENTS.md`)](AGENTS.md) — layout, tooling, **Conventional Commits**
 - [Methodology (`docs/methodology.md`)](docs/methodology.md) — ensemble framing and ALARM alignment
 - [Data model (`docs/data-model.md`)](docs/data-model.md) — expected inputs and future representations
