@@ -31,6 +31,7 @@ suppressPackageStartupMessages({
   library(jsonlite)
   library(sf)
   library(redist)
+  library(rlang)
 })
 
 meta <- fromJSON(json_path, simplifyVector = TRUE, simplifyDataFrame = FALSE)
@@ -53,17 +54,25 @@ for (k in seq_len(nrow(edges))) {
   adj[[jj]] <- c(adj[[jj]], ii)
 }
 adj <- lapply(adj, function(x) sort(unique(as.integer(x))))
+# Neighbor ids must be 0-based — same convention as redist::redist.adjacency (contiguity() is C++ 0-based).
+adj <- lapply(adj, function(x) x - 1L)
 
 pop_col <- meta$total_pop_column
 nd <- as.integer(meta$ndists)
 pt <- as.numeric(meta$pop_tol)
 
+if (!pop_col %in% names(precincts)) {
+  stop(paste("total_pop column", pop_col, "not in precinct layer; have:", paste(names(precincts), collapse = ", ")))
+}
+
+use_plane <- sf::st_is_longlat(precincts)
 map <- redist_map(
   precincts,
   ndists = nd,
   pop_tol = pt,
-  total_pop = precincts[[pop_col]],
-  adj = adj
+  total_pop = !!sym(pop_col),
+  adj = adj,
+  planarize = if (isTRUE(use_plane)) 3857 else FALSE
 )
 
 seed <- meta$seed

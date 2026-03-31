@@ -23,7 +23,12 @@ ASSIGNMENTS_CSV_NAME = "assignments.csv"
 
 
 def _edges_from_graph(graph: AdjacencyGraph) -> list[tuple[int, int]]:
-    """Undirected unique edges as ``(i, j)`` with ``i < j``, 0-based."""
+    """Undirected unique edges as ``(i, j)`` with ``i < j``, 0-based row indices.
+
+    ``r/redist/run_smc.R`` builds an adjacency list aligned with this ordering,
+    then converts neighbor vertex ids to **0-based** for ``redist`` (same as
+    ``redist::redist.adjacency`` output).
+    """
     seen: list[tuple[int, int]] = []
     for i, neigh in enumerate(graph.neighbor_lists):
         for j in neigh:
