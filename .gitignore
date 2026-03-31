@@ -51,3 +51,7 @@ data/processed/*.geojson
 data/processed/graph/*.parquet
 data/processed/graph/*.json
 data/processed/graph/*.html
+
+# Local scratch (redist / ad-hoc runs)
+_redist_debug/
+_t4326/
