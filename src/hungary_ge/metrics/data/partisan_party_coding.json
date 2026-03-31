@@ -1,0 +1,12 @@
+{
+  "schema_version": "hungary_ge.metrics.party_coding/v1",
+  "description": "Illustrative two-bloc reduction for metrics only; edit for research design. Not a legal definition of electoral alliances.",
+  "label_a": "FIDESZ-KDNP (list 952)",
+  "label_b": "Sum of other mapped list columns (stub)",
+  "party_a_columns": ["votes_list_952"],
+  "party_b_columns": [
+    "votes_list_942",
+    "votes_list_950",
+    "votes_list_951"
+  ]
+}

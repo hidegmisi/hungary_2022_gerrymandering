@@ -30,7 +30,7 @@ Stages follow [`docs/alarm-methodology.md`](docs/alarm-methodology.md) (`redist_
 | `hungary_ge.sampling` | Ensemble draws (`sample_plans`; R `redist` or Python later) |
 | `hungary_ge.ensemble` | Stored draws (`PlanEnsemble`; analogue of `redist_plans`) |
 | `hungary_ge.diagnostics` | `summarize_ensemble`, `DiagnosticsReport`, JSON sidecar (`write_diagnostics_json`); optional redist log scrape via ensemble metadata paths |
-| `hungary_ge.metrics` | Partisan outcome metrics vs focal plan |
+| `hungary_ge.metrics` | [`focal_vs_ensemble_metrics`](src/hungary_ge/metrics/compare.py), [`partisan_metrics`](src/hungary_ge/metrics/__init__.py); two-bloc config JSON under `metrics/data/` — see [docs/partisan-metrics.md](docs/partisan-metrics.md) |
 
 Prefer **relative paths** in scripts and notebooks so runs are reproducible across machines.
 

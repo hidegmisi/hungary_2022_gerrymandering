@@ -425,7 +425,7 @@ Definition of done:
 | Primary sampler | R `redist_smc` vs Python | TBD |
 | Canonical CRS for balance | EPSG:4326 vs Hungary metric CRS | TBD after ETL |
 | Ensemble storage | Wide parquet vs long vs Zarr | **Long Parquet + JSON sidecar** (`ensemble_assignments.parquet` + `.meta.json`); optional wide for small `n_draws` — see [data-model.md](data-model.md) |
-| Party system for metrics | Two-party vs multiparty | TBD at Slice 9 |
+| Party system for metrics | Two-party vs multiparty | **Two-bloc column sums** via JSON (`hungary_ge.metrics.party_coding/v1`); multiparty seat rules out of scope for v1 — see [partisan-metrics.md](partisan-metrics.md) |
 
 Update this table as choices land.
 
@@ -436,3 +436,4 @@ Update this table as choices land.
 - [alarm-methodology.md](alarm-methodology.md) — ALARM / `redist` pipeline reference
 - [AGENTS.md](../AGENTS.md) — repo layout and `hungary_ge` submodule map
 - [data-model.md](data-model.md) — IDs and artifacts
+- [partisan-metrics.md](partisan-metrics.md) — two-bloc configuration; efficiency gap and seat-share definitions (Slice 9)

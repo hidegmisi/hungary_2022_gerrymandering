@@ -219,7 +219,13 @@ Optional **UTF-8 JSON** written next to the assignments Parquet (default basenam
 | `ensemble` | Counts of **unique** assignment columns vs duplicates |
 | `smc_log` | Best-effort scan of ``redist_stderr_path`` / ``redist_stdout_path`` from ``PlanEnsemble.metadata`` (e.g. ESS keyword hits) |
 
-**Void / gap units:** Pass a **full-length** ``populations`` vector (zeros on void rows) into [`summarize_ensemble`](../src/hungary_ge/diagnostics/__init__.py) so district totals match the sampling graph; do not drop void columns before diagnostics if the ensemble includes them.
+**Void / gap units:** Pass a **full-length** ``populations`` vector (zeros on void units) into [`summarize_ensemble`](../src/hungary_ge/diagnostics/__init__.py) so district totals match the sampling graph; do not drop void columns before diagnostics if the ensemble includes them.
+
+#### Partisan metrics (Slice 9)
+
+[`focal_vs_ensemble_metrics`](../src/hungary_ge/metrics/compare.py) / [`partisan_metrics`](../src/hungary_ge/metrics/__init__.py) consume **`precinct_votes.parquet`**, **`focal_oevk_assignments.parquet`**, and a **`PlanEnsemble`**. There is **no** required new binary artifact for v1; results live in a [`PartisanComparisonReport`](../src/hungary_ge/metrics/report.py) (optional JSON via [`write_json`](../src/hungary_ge/metrics/report.py)).
+
+**Party coding:** Editable JSON listing which `votes_*` columns sum into bloc **A** vs **B** (schema `hungary_ge.metrics.party_coding/v1`). Packaged example: [`src/hungary_ge/metrics/data/partisan_party_coding.json`](../src/hungary_ge/metrics/data/partisan_party_coding.json). See [partisan-metrics.md](partisan-metrics.md).
 
 ## Processed artifacts (canonical names)
 
@@ -247,6 +253,6 @@ The [`src/hungary_ge/`](../src/hungary_ge/) package aligns pipeline code with th
 | Adjacency edges | `data/processed/graph/adjacency_edges.parquet` | `hungary_ge.graph.save_adjacency` / `load_adjacency` |
 | Votes / population table | `data/processed/precinct_votes.parquet` | joined on `precinct_id` (`maz-taz-szk`) for `metrics` |
 | Ensemble assignments | `data/processed/ensemble_assignments.parquet` (+ `.meta.json`, optional `…_diagnostics.json`) | [`save_plan_ensemble`](../src/hungary_ge/ensemble/persistence.py), [`load_plan_ensemble`](../src/hungary_ge/ensemble/persistence.py) → `PlanEnsemble`; [`summarize_ensemble`](../src/hungary_ge/diagnostics/__init__.py) |
-| Focal enacted plan | `data/processed/focal_oevk_assignments.parquet` | compared via `hungary_ge.metrics` (when implemented) |
+| Focal enacted plan | `data/processed/focal_oevk_assignments.parquet` | [`focal_vs_ensemble_metrics`](../src/hungary_ge/metrics/compare.py) vs ensemble |
 
-See [methodology.md](methodology.md) **Code layout** and [`AGENTS.md`](../AGENTS.md) for the full ALARM-stage → submodule map. Sampling and metrics remain stubs until later slices.
+See [methodology.md](methodology.md) **Code layout** and [`AGENTS.md`](../AGENTS.md) for the full ALARM-stage → submodule map.
