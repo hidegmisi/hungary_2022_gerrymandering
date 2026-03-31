@@ -18,6 +18,9 @@ viz = [
     "folium>=0.15.0",
 ]
 
+[project.scripts]
+hungary-ge-pipeline = "hungary_ge.pipeline.runner:main_entry"
+
 [build-system]
 requires = ["uv_build>=0.11.2,<0.12.0"]
 build-backend = "uv_build"
@@ -46,3 +49,12 @@ quote-style = "double"
 
 [tool.pytest.ini_options]
 testpaths = ["tests"]
+addopts = [
+    "-m",
+    "not requires_r and not requires_data and not heavy",
+]
+markers = [
+    "requires_r: needs Rscript and a working redist install (see tests/test_redist_integration.py)",
+    "requires_data: needs large or private datasets under data/ (reserved)",
+    "heavy: slow or high-memory tests (reserved)",
+]

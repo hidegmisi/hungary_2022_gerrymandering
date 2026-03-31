@@ -15,10 +15,13 @@ from hungary_ge.problem.precinct_index_map import prepare_precinct_layer
 from hungary_ge.sampling import sample_plans
 from hungary_ge.sampling.redist_adapter import RedistBackendError, default_run_smc_path
 
-pytestmark = pytest.mark.skipif(
-    shutil.which("Rscript") is None,
-    reason="Rscript not on PATH",
-)
+pytestmark = [
+    pytest.mark.requires_r,
+    pytest.mark.skipif(
+        shutil.which("Rscript") is None,
+        reason="Rscript not on PATH",
+    ),
+]
 
 
 def test_redist_driver_script_exists() -> None:
