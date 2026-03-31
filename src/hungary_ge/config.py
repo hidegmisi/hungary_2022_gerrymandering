@@ -13,6 +13,7 @@ PRECINCTS_GEOJSON = "precincts.geojson"
 PRECINCTS_PARQUET = "precincts.parquet"
 PRECINCT_VOTES_PARQUET = "precinct_votes.parquet"
 ENSEMBLE_ASSIGNMENTS_PARQUET = "ensemble_assignments.parquet"
+ENSEMBLE_ASSIGNMENTS_META = "ensemble_assignments.meta.json"
 FOCAL_OEVK_ASSIGNMENTS_PARQUET = "focal_oevk_assignments.parquet"
 
 PROCESSED_DIR = Path("data/processed")
@@ -50,6 +51,10 @@ class ProcessedPaths:
     @property
     def ensemble_assignments_parquet(self) -> Path:
         return self.processed_dir / ENSEMBLE_ASSIGNMENTS_PARQUET
+
+    @property
+    def ensemble_assignments_meta(self) -> Path:
+        return self.processed_dir / ENSEMBLE_ASSIGNMENTS_META
 
     @property
     def focal_oevk_assignments_parquet(self) -> Path:

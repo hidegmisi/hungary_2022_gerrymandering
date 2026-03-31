@@ -11,6 +11,14 @@ def test_import_hungary_ge() -> None:
     import hungary_ge  # noqa: F401
 
 
+def test_import_ensemble_persistence() -> None:
+    from hungary_ge.ensemble import (  # noqa: F401
+        load_plan_ensemble,
+        load_plan_ensemble_draw_column,
+        save_plan_ensemble,
+    )
+
+
 def test_import_libpysal() -> None:
     import libpysal  # noqa: F401
 

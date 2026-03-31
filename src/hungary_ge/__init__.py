@@ -10,6 +10,7 @@ Pipeline stages mirror ALARM / ``redist`` (see ``docs/alarm-methodology.md``):
 
 from hungary_ge.config import (
     ADJACENCY_EDGES_PARQUET,
+    ENSEMBLE_ASSIGNMENTS_META,
     ENSEMBLE_ASSIGNMENTS_PARQUET,
     FOCAL_OEVK_ASSIGNMENTS_PARQUET,
     GRAPH_DIR,
@@ -72,7 +73,9 @@ __all__ = [
     "ConstraintViolationReport",
     "DEFAULT_NDISTS",
     "ADJACENCY_EDGES_PARQUET",
+    "ENSEMBLE_ASSIGNMENTS_META",
     "ENSEMBLE_ASSIGNMENTS_PARQUET",
+    "ENSEMBLE_MANIFEST_SCHEMA_V1",
     "FOCAL_OEVK_ASSIGNMENTS_PARQUET",
     "GRAPH_DIR",
     "PRECINCTS_GEOJSON",
@@ -109,6 +112,7 @@ __all__ = [
     "spec_from_json",
     "spec_to_json",
     "sample_plans",
+    "save_plan_ensemble",
     "save_adjacency",
     "summarize_ensemble",
     "validate_problem_frame",

@@ -161,8 +161,49 @@ Derived from **`oevk_id_full`** (and related fields) on each precinct record in 
 
 ## Outputs (future)
 
-- Ensemble catalog: identifiers or hashes for each simulated plan, storage format TBD (e.g. parquet of assignments, compact binary, or references to GeoPackages)
 - Summary tables: metric distributions across the ensemble and ranks/placements of focal plans
+
+### Ensemble assignments (Slice 7)
+
+Simulated draws are stored as **Parquet** plus a **JSON sidecar** (same pattern as graph `adjacency_edges.parquet` + `.meta.json`). [`PlanEnsemble`](../src/hungary_ge/ensemble/plan_ensemble.py) row order matches **lexicographic `precinct_id`** ([`PrecinctIndexMap`](../src/hungary_ge/problem/precinct_index_map.py)).
+
+**Void / gap units:** Files include every graph node (szvk and `gap-…` voids). Partisan metrics and vote joins should **exclude voids** unless explicitly required (Electoral tables above; master-plan Slice 9).
+
+#### Long layout (default)
+
+One row per **(precinct, draw)**; recommended for large `n_draws` (~10k).
+
+| Column | Type | Meaning |
+|--------|------|---------|
+| `precinct_id` | string | Unit id (`maz-taz-szk` or `gap-…`) |
+| `draw` | int | Draw label (matches `PlanEnsemble.draw_ids` when set, else `1 … n_draws`) |
+| `district` | int | District label for that unit in that draw |
+| `chain` | int, optional | SMC chain / run id (matches `chain_or_run` when present) |
+
+Row count = `n_units × n_draws`. Prefer **zstd** compression.
+
+#### Wide layout (optional, small pilots)
+
+Rows = units (`precinct_id` + one column per draw). Draw columns are named `d000001`, `d000002`, … in column order. Supported only for `n_draws` ≤ **1024** (library default); use long layout at national scale.
+
+#### Sidecar manifest (`ensemble_assignments.meta.json`)
+
+| Field | Meaning |
+|-------|---------|
+| `schema_version` | `hungary_ge.ensemble/v1` |
+| `layout` | `long` or `wide` |
+| `assignments_file` | Basename of the parquet file (relative to the sidecar directory) |
+| `precinct_id_column` | Usually `precinct_id` |
+| `n_units`, `n_draws` | Shape |
+| `unit_ids` | Row order for `PlanEnsemble` (must match canonical sort) |
+| `draw_ids` | Optional list of draw labels (length `n_draws`) |
+| `chain_per_draw` | Optional list parallel to draws |
+| `column_map` | Long layout: parquet column names for `draw` / `district` / `chain` |
+| `wide_draw_columns` | Wide layout: list of `d000001`, … |
+| `metadata` | Subset of `PlanEnsemble.metadata` (sampler seed, paths, …) |
+| `sha256` | Optional checksum of the parquet file |
+
+**Loaders:** [`save_plan_ensemble`](../src/hungary_ge/ensemble/persistence.py), [`load_plan_ensemble`](../src/hungary_ge/ensemble/persistence.py); lazy per-draw reads via [`load_plan_ensemble_draw_column`](../src/hungary_ge/ensemble/persistence.py).
 
 ## Processed artifacts (canonical names)
 
@@ -173,9 +214,10 @@ Build outputs and derived layers use **fixed basenames** under **`data/processed
 | `precincts.parquet` | **Preferred** canonical precinct layer (GeoParquet); columns include `maz`, `taz`, `szk`, `precinct_id`, `geometry`. |
 | `precincts.geojson` | Optional interchange / inspection copy of the same layer. |
 | `precinct_votes.parquet` | Vote / population table keyed by `precinct_id`. |
-| `ensemble_assignments.parquet` | Simulated plans: rows = precincts (same order as the canonical layer), columns = draws; column semantics TBD. |
+| `ensemble_assignments.parquet` | Simulated district assignments (Slice 7). **Default layout: long** — see [Ensemble assignments (Slice 7)](#ensemble-assignments-slice-7). Sidecar `ensemble_assignments.meta.json`. |
 | `focal_oevk_assignments.parquet` | Enacted plan: `precinct_id`, `oevk_id_full` (national id), optional `oevk_id`, `maz`. |
 | `graph/adjacency_edges.parquet` (+ `.meta.json`) | Undirected contiguity edges (`i`,`j`) in `PrecinctIndexMap` index space; from [`save_adjacency`](../src/hungary_ge/graph/adjacency_io.py). |
+| `ensemble_assignments.meta.json` | Sidecar to `ensemble_assignments.parquet` (manifest: layout, `unit_ids`, draw metadata). |
 
 **Optional reproducibility:** the ETL script writes `data/processed/manifests/precincts_etl.json` by default (row counts, SHA-256 of the parquet output, CRS). Other manifests may use `data/processed/manifests/<build_id>.json` (stdlib JSON).
 
@@ -188,7 +230,7 @@ The [`src/hungary_ge/`](../src/hungary_ge/) package aligns pipeline code with th
 | Canonical precinct layer | `data/processed/precincts.parquet` (preferred) or `precincts.geojson` | `hungary_ge.io.load_processed_geoparquet` / `load_processed_geojson` → `problem` + `graph` |
 | Adjacency edges | `data/processed/graph/adjacency_edges.parquet` | `hungary_ge.graph.save_adjacency` / `load_adjacency` |
 | Votes / population table | `data/processed/precinct_votes.parquet` | joined on `precinct_id` (`maz-taz-szk`) for `metrics` |
-| Ensemble assignments | `data/processed/ensemble_assignments.parquet` | loaded into `hungary_ge.ensemble.PlanEnsemble` |
+| Ensemble assignments | `data/processed/ensemble_assignments.parquet` (+ `.meta.json`) | [`save_plan_ensemble`](../src/hungary_ge/ensemble/persistence.py), [`load_plan_ensemble`](../src/hungary_ge/ensemble/persistence.py) → `PlanEnsemble` |
 | Focal enacted plan | `data/processed/focal_oevk_assignments.parquet` | compared via `hungary_ge.metrics` (when implemented) |
 
 See [methodology.md](methodology.md) **Code layout** and [`AGENTS.md`](../AGENTS.md) for the full ALARM-stage → submodule map. Sampling and metrics remain stubs until later slices.

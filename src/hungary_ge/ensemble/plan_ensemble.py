@@ -5,6 +5,8 @@ from __future__ import annotations
 from collections.abc import Mapping, Sequence
 from dataclasses import dataclass, field
 
+import pandas as pd
+
 
 @dataclass
 class PlanEnsemble:
@@ -61,6 +63,26 @@ class PlanEnsemble:
         if not self.assignments:
             return 0
         return len(self.assignments[0])
+
+    def to_long_frame(self) -> pd.DataFrame:
+        """Long-format table: one row per ``(precinct_id, draw)`` (Slice 7 Parquet)."""
+        rows: list[dict[str, object]] = []
+        n_d = self.n_draws
+        for j in range(n_d):
+            d_lbl = self.draw_ids[j] if self.draw_ids is not None else j + 1
+            chain_val: int | None = (
+                self.chain_or_run[j] if self.chain_or_run is not None else None
+            )
+            for i, pid in enumerate(self.unit_ids):
+                row: dict[str, object] = {
+                    "precinct_id": pid,
+                    "draw": d_lbl,
+                    "district": self.assignments[i][j],
+                }
+                if chain_val is not None:
+                    row["chain"] = chain_val
+                rows.append(row)
+        return pd.DataFrame(rows)
 
     @classmethod
     def from_columns(

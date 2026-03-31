@@ -1,0 +1,151 @@
+{
+  "szavkor_root": "C:\\Users\\hideg\\Documents\\Projects\\hungary_2022_gerrymandering\\data\\raw\\szavkor_topo",
+  "raw_list_total": 10447,
+  "n_files_read": 3177,
+  "n_records_in": 10447,
+  "n_rows_out": 109312,
+  "n_rows_szvk": 10425,
+  "n_dropped_unrepaired": 22,
+  "out_parquet": "C:\\Users\\hideg\\Documents\\Projects\\hungary_2022_gerrymandering\\data\\processed\\precincts_void_hex.parquet",
+  "out_parquet_sha256": "6f677d49e4af9a02d9bcce14aa3d91c8a1e038d4bba6dca645fb843a0570fc68",
+  "crs": "EPSG:4326",
+  "warnings": [
+    "drop precinct (unrepaired geometry): 01-003-200",
+    "drop precinct (unrepaired geometry): 01-005-008",
+    "drop precinct (unrepaired geometry): 01-005-022",
+    "drop precinct (unrepaired geometry): 01-009-054",
+    "drop precinct (unrepaired geometry): 01-010-077",
+    "drop precinct (unrepaired geometry): 01-012-099",
+    "drop precinct (unrepaired geometry): 01-014-076",
+    "drop precinct (unrepaired geometry): 01-016-062",
+    "drop precinct (unrepaired geometry): 01-020-062",
+    "drop precinct (unrepaired geometry): 01-021-060",
+    "drop precinct (unrepaired geometry): 01-022-038",
+    "drop precinct (unrepaired geometry): 03-060-047",
+    "drop precinct (unrepaired geometry): 04-004-069",
+    "drop precinct (unrepaired geometry): 06-051-711",
+    "drop precinct (unrepaired geometry): 07-024-100",
+    "drop precinct (unrepaired geometry): 07-094-200",
+    "drop precinct (unrepaired geometry): 08-059-097",
+    "drop precinct (unrepaired geometry): 09-018-133",
+    "drop precinct (unrepaired geometry): 10-025-100",
+    "drop precinct (unrepaired geometry): 15-039-001",
+    "drop precinct (unrepaired geometry): 18-186-100",
+    "drop precinct (unrepaired geometry): 20-134-041"
+  ],
+  "with_gaps": true,
+  "shell_path": "C:\\Users\\hideg\\Documents\\Projects\\hungary_2022_gerrymandering\\data\\raw\\admin\\hu_megye_shell_maz.geojson",
+  "shell_maz_column": "maz",
+  "shell_sha256": "2666f31301beeffbef566c043dd75febe72736c5919ac6c9c030dfe99a9fa47a",
+  "gap_build": {
+    "n_shell_features_read": 19,
+    "n_counties_processed": 20,
+    "n_gap_polygons": 98887,
+    "n_gap_polygons_raw": 4189,
+    "n_void_cells_after_hex": 98887,
+    "n_dropped_below_min_area": 1460,
+    "total_gap_area_m2": 57209859745.54291,
+    "median_szvk_area_m2": 3139190.809944127,
+    "hex_cell_area_m2_used": 3139190.809944127,
+    "n_hex_cells_truncated": 0,
+    "per_maz": {
+      "01": {
+        "n_gaps": 4098,
+        "area_m2_metric": 188441221.98956895
+      },
+      "02": {
+        "n_gaps": 1815,
+        "area_m2_metric": 1340703435.5576375
+      },
+      "03": {
+        "n_gaps": 8172,
+        "area_m2_metric": 5282380268.746583
+      },
+      "04": {
+        "n_gaps": 8254,
+        "area_m2_metric": 4663195782.317144
+      },
+      "05": {
+        "n_gaps": 6286,
+        "area_m2_metric": 2966459418.414433
+      },
+      "06": {
+        "n_gaps": 7490,
+        "area_m2_metric": 3333527403.9374986
+      },
+      "07": {
+        "n_gaps": 6394,
+        "area_m2_metric": 3379205663.99239
+      },
+      "09": {
+        "n_gaps": 8254,
+        "area_m2_metric": 4577609821.09255
+      },
+      "10": {
+        "n_gaps": 4525,
+        "area_m2_metric": 2207958718.2649016
+      },
+      "11": {
+        "n_gaps": 8900,
+        "area_m2_metric": 4617184238.2188015
+      },
+      "12": {
+        "n_gaps": 4660,
+        "area_m2_metric": 1489157454.5123887
+      },
+      "13": {
+        "n_gaps": 1716,
+        "area_m2_metric": 1065660758.6855208
+      },
+      "14": {
+        "n_gaps": 11630,
+        "area_m2_metric": 4667024409.537303
+      },
+      "15": {
+        "n_gaps": 2579,
+        "area_m2_metric": 2552218423.4170346
+      },
+      "16": {
+        "n_gaps": 4905,
+        "area_m2_metric": 3601947366.7665443
+      },
+      "17": {
+        "n_gaps": 4965,
+        "area_m2_metric": 2227779426.8200955
+      },
+      "18": {
+        "n_gaps": 1012,
+        "area_m2_metric": 4229208298.010336
+      },
+      "19": {
+        "n_gaps": 2064,
+        "area_m2_metric": 1486120016.2405488
+      },
+      "20": {
+        "n_gaps": 1168,
+        "area_m2_metric": 3334077619.021625
+      }
+    },
+    "options": {
+      "metric_crs": "EPSG:32633",
+      "min_area_m2": 100.0,
+      "void_id_prefix": "gap",
+      "precinct_union_buffer_m": 0.0,
+      "shell_buffer_m": 0.0
+    },
+    "hex_void": {
+      "enabled": true,
+      "auto_size": true,
+      "hex_area_factor": 1.0,
+      "hex_cell_area_m2": null,
+      "subdivide_min_void_m2": null,
+      "subdivide_min_void_factor": 4.0,
+      "hex_min_cell_area_m2": 10000.0,
+      "hex_max_cell_area_m2": 5000000.0,
+      "max_cells_per_gap": 200000
+    },
+    "warnings": [
+      "no shell polygon for maz=08"
+    ]
+  }
+}

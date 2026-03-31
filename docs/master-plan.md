@@ -424,7 +424,7 @@ Definition of done:
 |----------|---------|--------|
 | Primary sampler | R `redist_smc` vs Python | TBD |
 | Canonical CRS for balance | EPSG:4326 vs Hungary metric CRS | TBD after ETL |
-| Ensemble storage | Wide parquet vs long vs Zarr | TBD at Slice 7 |
+| Ensemble storage | Wide parquet vs long vs Zarr | **Long Parquet + JSON sidecar** (`ensemble_assignments.parquet` + `.meta.json`); optional wide for small `n_draws` — see [data-model.md](data-model.md) |
 | Party system for metrics | Two-party vs multiparty | TBD at Slice 9 |
 
 Update this table as choices land.
