@@ -1,0 +1,11 @@
+Package: hungaryge.redist.driver
+Title: redist SMC driver for hungary-ge
+Version: 0.0.0.9000
+Authors@R: person("Project", "Hungary GE", role = c("ctb"))
+Description: Minimal R project layout for renv. Actual entry point is run_smc.R.
+License: MIT + file LICENSE
+Encoding: UTF-8
+Imports:
+    jsonlite (>= 1.8.0),
+    sf (>= 1.0-0),
+    redist (>= 4.3.0)
