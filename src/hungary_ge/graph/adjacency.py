@@ -59,7 +59,9 @@ def build_adjacency(
         if opts.fuzzy_buffer_m is not None:
             fc_kw["buffer"] = opts.fuzzy_buffer_m
         w = fuzzy_contiguity(gdf_w, **fc_kw)
-        contiguity_label = "fuzzy:buffered" if opts.fuzzy_buffering else "fuzzy:intersect"
+        contiguity_label = (
+            "fuzzy:buffered" if opts.fuzzy_buffering else "fuzzy:intersect"
+        )
         return from_libpysal_w(w, index_map, contiguity_label)
 
     if opts.contiguity == "queen":

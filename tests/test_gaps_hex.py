@@ -65,7 +65,9 @@ def test_resolve_hex_cell_area_auto_clamp() -> None:
 def test_subdivide_rectangle_many_cells() -> None:
     gap = box(0, 0, 3000, 2000)
     cell_a = 80_000.0
-    cells, trunc = subdivide_one_gap_polygon(gap, cell_a, min_fragment_m2=1.0, max_cells=5000)
+    cells, trunc = subdivide_one_gap_polygon(
+        gap, cell_a, min_fragment_m2=1.0, max_cells=5000
+    )
     assert not trunc
     assert len(cells) >= 40
     total_a = sum(c.area for c in cells)
@@ -186,7 +188,9 @@ def test_subdivide_gap_polygons_hex_skipped_invalid_median() -> None:
     assert len(out) == 1
 
 
-@pytest.mark.filterwarnings("ignore:The weights matrix is not fully connected:UserWarning")
+@pytest.mark.filterwarnings(
+    "ignore:The weights matrix is not fully connected:UserWarning"
+)
 def test_fuzzy_connects_hex_void_corridor() -> None:
     """Hex void cells can have hairline gaps vs queen; fuzzy buffering links the corridor."""
     from hungary_ge.graph import AdjacencyBuildOptions, build_adjacency

@@ -80,13 +80,17 @@ def resolve_hex_cell_area_m2(
     if not opts.auto_size:
         return None, ["hex_void: auto_size is False but hex_cell_area_m2 is unset"]
     if median_szvk_area_m2 <= 0 or math.isnan(median_szvk_area_m2):
-        return None, ["median szvk area is invalid; set hex_cell_area_m2 or disable hex_void"]
+        return None, [
+            "median szvk area is invalid; set hex_cell_area_m2 or disable hex_void"
+        ]
     a = median_szvk_area_m2 * opts.hex_area_factor
     a = max(opts.hex_min_cell_area_m2, min(a, opts.hex_max_cell_area_m2))
     return a, warns
 
 
-def resolve_subdivide_min_void_m2(median_szvk_area_m2: float, opts: HexVoidOptions) -> float:
+def resolve_subdivide_min_void_m2(
+    median_szvk_area_m2: float, opts: HexVoidOptions
+) -> float:
     if opts.subdivide_min_void_m2 is not None:
         return opts.subdivide_min_void_m2
     base = median_szvk_area_m2

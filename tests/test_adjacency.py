@@ -87,7 +87,9 @@ def test_order_mismatch_raises() -> None:
         build_adjacency(bad, prob, pmap)
 
 
-@pytest.mark.filterwarnings("ignore:The weights matrix is not fully connected:UserWarning")
+@pytest.mark.filterwarnings(
+    "ignore:The weights matrix is not fully connected:UserWarning"
+)
 def test_island_two_components() -> None:
     prob = OevkProblem(county_column=None, pop_column=None, crs="EPSG:4326")
     gdf = gpd.GeoDataFrame(
@@ -130,7 +132,9 @@ def test_patch_remove_edge() -> None:
     assert g2.n_edges == e0 - 1
 
 
-@pytest.mark.filterwarnings("ignore:The weights matrix is not fully connected:UserWarning")
+@pytest.mark.filterwarnings(
+    "ignore:The weights matrix is not fully connected:UserWarning"
+)
 def test_fuzzy_buffering_closes_near_miss_gap() -> None:
     """Hairline gap: queen is disconnected; fuzzy_contiguity with buffering links."""
     prob = OevkProblem(county_column=None, pop_column=None, crs="EPSG:32633")

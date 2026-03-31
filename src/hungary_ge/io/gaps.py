@@ -228,7 +228,9 @@ def build_gap_features_for_maz(
         for w in hex_meta.get("resolve_warnings", []):
             stats.add_warning(w)
         if hex_meta.get("skipped_hex"):
-            stats.add_warning("hex_void skipped (invalid auto-size); using raw gap pieces")
+            stats.add_warning(
+                "hex_void skipped (invalid auto-size); using raw gap pieces"
+            )
             final_polygons = list(raw_polygons)
 
     rows = [{"geometry": poly} for poly in final_polygons]
@@ -254,8 +256,10 @@ def build_gap_features_for_maz(
     g_metric = gpd.GeoDataFrame(rows, crs=opts.metric_crs)
     cxs = g_metric.geometry.centroid.x
     cys = g_metric.geometry.centroid.y
-    g_metric = g_metric.assign(_cx=cxs, _cy=cys).sort_values(["_cx", "_cy"]).drop(
-        columns=["_cx", "_cy"]
+    g_metric = (
+        g_metric.assign(_cx=cxs, _cy=cys)
+        .sort_values(["_cx", "_cy"])
+        .drop(columns=["_cx", "_cy"])
     )
     g_metric = g_metric.reset_index(drop=True)
 
