@@ -28,7 +28,10 @@ from hungary_ge.metrics.party_coding import (
     default_partisan_party_coding_path,
     load_partisan_party_coding,
 )
-from hungary_ge.metrics.policy import DEFAULT_METRIC_COMPUTATION_POLICY
+from hungary_ge.metrics.policy import (
+    DEFAULT_METRIC_COMPUTATION_POLICY,
+    MetricComputationPolicy,
+)
 from hungary_ge.pipeline.progress import county_progress_disabled
 from hungary_ge.problem import DEFAULT_PRECINCT_ID_COLUMN
 
@@ -353,12 +356,13 @@ def _draw_series_for_metrics(
     maz: str,
     no_progress: bool,
     draw_pbar_desc: str | None,
+    metric_policy: MetricComputationPolicy | None = None,
 ) -> dict[str, CountyDrawSeries]:
     for name in metric_names:
         if name not in _METRICS_FOR_PLOTS:
             raise ValueError(f"unsupported metric for draw series: {name!r}")
 
-    policy = DEFAULT_METRIC_COMPUTATION_POLICY
+    policy = metric_policy or DEFAULT_METRIC_COMPUTATION_POLICY
     va_b, vb_b, _bal = apply_two_bloc_vote_balance(va, vb, policy)
 
     disable_draws = county_progress_disabled(no_progress=no_progress)
@@ -417,6 +421,7 @@ def compute_draw_metric_series(
     log_prefix: str = "",
     no_progress: bool = False,
     draw_pbar_desc: str | None = None,
+    metric_policy: MetricComputationPolicy | None = None,
 ) -> CountyDrawSeries:
     ensemble, va, vb, focal_lbl = _load_ensemble_and_vote_arrays(
         paths=paths,
@@ -436,6 +441,7 @@ def compute_draw_metric_series(
         maz=maz,
         no_progress=no_progress,
         draw_pbar_desc=draw_pbar_desc,
+        metric_policy=metric_policy,
     )
     return multi[metric_name]
 
@@ -1020,6 +1026,7 @@ def generate_policy_figures(
     skip_draw_level: bool = False,
     no_progress: bool = False,
     log_prefix: str = "",
+    metric_policy: MetricComputationPolicy | None = None,
 ) -> list[Path]:
     if style_name not in STYLE_CHOICES:
         raise ValueError(f"style must be one of {STYLE_CHOICES!r}")
@@ -1153,6 +1160,7 @@ def generate_policy_figures(
                 maz=maz,
                 no_progress=no_progress,
                 draw_pbar_desc=f"{maz} seat_share+effgap",
+                metric_policy=metric_policy,
             )
             seat_series[maz] = by_m["seat_share_a"]
             eg_series[maz] = by_m["efficiency_gap"]

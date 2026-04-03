@@ -6,6 +6,9 @@ import argparse
 from collections.abc import Callable
 
 from hungary_ge.pipeline.context import PipelineContext
+from hungary_ge.pipeline.partisan_metric_policy_args import (
+    add_arguments as add_partisan_metric_policy_arguments,
+)
 
 from . import (
     allocation_stage,
@@ -26,6 +29,7 @@ _ARGUMENT_REGISTRARS: tuple[Callable[[argparse.ArgumentParser], None], ...] = (
     graph_stage.add_arguments,
     viz_stage.add_arguments,
     shared_runtime.add_arguments,
+    add_partisan_metric_policy_arguments,
     sample_stage.add_arguments,
     reports_stage.add_arguments,
     rollup_stage.add_arguments,

@@ -7,6 +7,9 @@ import sys
 from pathlib import Path
 
 from hungary_ge.pipeline.context import PipelineContext
+from hungary_ge.pipeline.partisan_metric_policy_args import (
+    metric_computation_policy_from_namespace,
+)
 from hungary_ge.pipeline.policy_figures import (
     DEFAULT_STYLE,
     STYLE_CHOICES,
@@ -83,6 +86,7 @@ def run(ctx: PipelineContext) -> int:
 
     prefix = f"[run {run_id}] "
     print(f"{prefix}stage policy_figures: generating memo charts")  # noqa: T201
+    metric_policy = metric_computation_policy_from_namespace(args)
     try:
         outputs = generate_policy_figures(
             paths=paths,
@@ -95,6 +99,7 @@ def run(ctx: PipelineContext) -> int:
             skip_draw_level=bool(args.policy_figures_skip_draw_level),
             no_progress=bool(args.no_progress),
             log_prefix=prefix,
+            metric_policy=metric_policy,
         )
     except (FileNotFoundError, OSError, ValueError) as exc:
         print(f"{prefix}policy_figures failed: {exc}", file=sys.stderr)

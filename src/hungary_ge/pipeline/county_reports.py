@@ -22,6 +22,10 @@ from hungary_ge.metrics.party_coding import (
     default_partisan_party_coding_path,
     load_partisan_party_coding,
 )
+from hungary_ge.metrics.policy import (
+    DEFAULT_METRIC_COMPUTATION_POLICY,
+    MetricComputationPolicy,
+)
 from hungary_ge.pipeline.county_allocation import normalize_maz
 from hungary_ge.pipeline.county_sample import county_ndists_by_maz
 from hungary_ge.problem import DEFAULT_PRECINCT_ID_COLUMN
@@ -64,6 +68,7 @@ def run_county_reports(
     party_coding_path: Path | None,
     strict_focal_for_voting_units: bool,
     include_smc_log_scan: bool = True,
+    metric_policy: MetricComputationPolicy | None = None,
 ) -> None:
     """Write ``diagnostics.json`` and ``partisan_report.json`` under county ``reports/``."""
     maz_n = normalize_maz(maz)
@@ -119,12 +124,14 @@ def run_county_reports(
         pcp = party_coding_path or default_partisan_party_coding_path()
         coding = load_partisan_party_coding(pcp)
 
+    pol = metric_policy or DEFAULT_METRIC_COMPUTATION_POLICY
     partisan = partisan_metrics(
         ensemble,
         votes,
         focal=focal,
         party_coding=coding,
         strict_focal_for_voting_units=strict_focal_for_voting_units,
+        metric_policy=pol,
     )
     partisan_out = replace(
         partisan,

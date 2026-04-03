@@ -9,6 +9,9 @@ from pathlib import Path
 from hungary_ge.config import ENSEMBLE_ASSIGNMENTS_PARQUET
 from hungary_ge.pipeline.context import PipelineContext
 from hungary_ge.pipeline.county_reports import run_county_reports
+from hungary_ge.pipeline.partisan_metric_policy_args import (
+    metric_computation_policy_from_namespace,
+)
 from hungary_ge.pipeline.progress import county_tqdm
 from hungary_ge.pipeline.stages.county_sequence import county_maz_sequence
 
@@ -106,6 +109,7 @@ def run(ctx: PipelineContext) -> int:
             file=sys.stderr,
         )
         return 1
+    metric_policy = metric_computation_policy_from_namespace(args)
     r_failures: list[str] = []
     with county_tqdm(
         maz_list_rpt,
@@ -140,6 +144,7 @@ def run(ctx: PipelineContext) -> int:
                     party_coding_path=party_coding_path,
                     strict_focal_for_voting_units=not args.reports_loose_focal,
                     include_smc_log_scan=not args.reports_no_smc_log_scan,
+                    metric_policy=metric_policy,
                 )
             except (OSError, ValueError) as exc:
                 pbar.set_postfix_str(f"{maz} fail", refresh=True)
