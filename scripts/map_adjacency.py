@@ -17,6 +17,9 @@ adds cross-border edges from bicounty runs, then maps — see
 
 Polygons are drawn from the GeoParquet as stored (WGS84); void hex sizing and filters
 are applied in ``build_precinct_layer`` / ``gaps_hex``, not in this script.
+
+County (megye) outlines default to ``data/raw/admin/hu_megye_shell_maz.geojson`` (black,
+thick stroke). Filtered to ``--maz`` when set. Use ``--no-county-borders`` to omit.
 """
 
 from __future__ import annotations
@@ -34,6 +37,9 @@ except ImportError:
     )
     raise SystemExit(1) from None
 
+import geopandas as gpd
+from folium.map import CustomPane
+
 from hungary_ge.config import ProcessedPaths
 from hungary_ge.graph import AdjacencyBuildOptions, adjacency_summary, build_adjacency
 from hungary_ge.graph.national_adjacency import build_national_adjacency_merged
@@ -47,6 +53,33 @@ def _default_parquet_path(repo_root: Path) -> Path:
     if void_hex.is_file():
         return void_hex
     return plain
+
+
+def _default_county_borders_path(repo_root: Path) -> Path:
+    return repo_root / "data/raw/admin/hu_megye_shell_maz.geojson"
+
+
+def _county_border_gdf_for_map(
+    path: Path,
+    maz: str | None,
+) -> gpd.GeoDataFrame | None:
+    """County/megye shells for Folium; filter to ``maz`` when set."""
+    if not path.is_file():
+        return None
+    g = gpd.read_file(path)
+    if maz is not None:
+        if "maz" not in g.columns:
+            print(  # noqa: T201
+                f"County borders file has no 'maz' column; skipping: {path}",
+                file=sys.stderr,
+            )
+            return None
+        g = g[g["maz"].astype(str) == str(maz)].copy()
+    if g.empty:
+        return None
+    if g.crs is not None:
+        g = g.to_crs(4326)
+    return g
 
 
 def main() -> int:
@@ -127,6 +160,20 @@ def main() -> int:
             "National only: single build_adjacency on full layer (--fuzzy / --contiguity). "
             "Otherwise county merge + bicounty cross edges (default)."
         ),
+    )
+    parser.add_argument(
+        "--county-borders",
+        type=Path,
+        default=None,
+        help=(
+            "GeoJSON of county (megye) polygons for outlines "
+            "(default: data/raw/admin/hu_megye_shell_maz.geojson)"
+        ),
+    )
+    parser.add_argument(
+        "--no-county-borders",
+        action="store_true",
+        help="Do not draw county boundary outlines.",
     )
     parser.add_argument(
         "--no-polygons",
@@ -280,6 +327,15 @@ def main() -> int:
             "fillOpacity": 0.2,
         }
 
+    def _style_county_border(_feature: dict) -> dict:
+        return {
+            "fillOpacity": 0,
+            "fillColor": "#000000",
+            "color": "#000000",
+            "weight": 5,
+            "opacity": 1.0,
+        }
+
     gdf_metric = gdf2.to_crs(3857)
     centroids_wgs = gdf_metric.geometry.centroid.to_crs(4326)
     lats = centroids_wgs.y.to_numpy()
@@ -290,6 +346,8 @@ def main() -> int:
         zoom_start=10,
         tiles="cartodbpositron",
     )
+    # Render county outlines above precinct fills (same overlay pane stacks poorly otherwise).
+    CustomPane("countyMegyeBorders", z_index=670, pointer_events=False).add_to(m)
 
     n_draw = 0
     for i in range(graph.n_nodes):
@@ -310,6 +368,9 @@ def main() -> int:
         if n_draw >= args.max_edges:
             break
 
+    has_void_layer = False
+    county_fg_added = False
+
     if not args.no_polygons:
         fg_szvk = folium.FeatureGroup(name="Precincts (szvk)", show=True)
         has_void_layer = (
@@ -321,18 +382,48 @@ def main() -> int:
             is_void = gdf2["unit_kind"].astype(str) == "void"
             szvk_part = gdf2[~is_void]
             void_part = gdf2[is_void]
-            folium.GeoJson(szvk_part.to_json(), style_function=_style_szvk).add_to(fg_szvk)
+            folium.GeoJson(szvk_part.to_json(), style_function=_style_szvk).add_to(
+                fg_szvk
+            )
             fg_void = folium.FeatureGroup(name="Gap (void)", show=True)
-            folium.GeoJson(void_part.to_json(), style_function=_style_void).add_to(fg_void)
+            folium.GeoJson(void_part.to_json(), style_function=_style_void).add_to(
+                fg_void
+            )
             fg_szvk.add_to(m)
             fg_void.add_to(m)
-            folium.LayerControl(collapsed=False).add_to(m)
         else:
             plot_gdf = gdf2
             if args.no_gaps and "unit_kind" in gdf2.columns:
                 plot_gdf = gdf2[gdf2["unit_kind"].astype(str) != "void"]
-            folium.GeoJson(plot_gdf.to_json(), style_function=_style_plain).add_to(fg_szvk)
+            folium.GeoJson(plot_gdf.to_json(), style_function=_style_plain).add_to(
+                fg_szvk
+            )
             fg_szvk.add_to(m)
+
+    if not args.no_county_borders:
+        cpath = args.county_borders
+        if cpath is None:
+            cpath = _default_county_borders_path(repo_root)
+        elif not cpath.is_absolute():
+            cpath = (repo_root / cpath).resolve()
+        c_gdf = _county_border_gdf_for_map(cpath, args.maz)
+        if c_gdf is not None:
+            fg_counties = folium.FeatureGroup(name="County borders", show=True)
+            folium.GeoJson(
+                c_gdf.to_json(),
+                style_function=_style_county_border,
+                pane="countyMegyeBorders",
+            ).add_to(fg_counties)
+            fg_counties.add_to(m)
+            county_fg_added = True
+        elif cpath.is_file():
+            print(  # noqa: T201
+                f"No county features to draw after filter (maz={args.maz!r}): {cpath}",
+                file=sys.stderr,
+            )
+
+    if has_void_layer or (county_fg_added and not args.no_polygons):
+        folium.LayerControl(collapsed=False).add_to(m)
 
     m.fit_bounds([[lats.min(), lons.min()], [lats.max(), lons.max()]])
 
