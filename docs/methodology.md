@@ -24,6 +24,8 @@ Practical plan for this project:
 - Use **compactness** mainly as a **sampling constraint** or secondary descriptive statistic, not as the main evidentiary metric.
 - Prioritize ensemble comparisons on **seat shares, votes-to-seats relationships, and efficiency gap / symmetry-style metrics** under simulated versus enacted assignments.
 
+**Implementation note (efficiency gap):** The packaged code uses a **winner-surplus** two-bloc definition (winner wastes the margin \(|A-B|\), loser wastes all of its votes), normalized by total two-party turnout. That is **not** identical to the canonical Stephanopoulos–McGhee formulation with a 50% winning threshold; cite [partisan-metrics.md](partisan-metrics.md) and report metadata when comparing numbers across studies.
+
 ## Hungary and 2022 context
 
 - **OEVK:** National single-member districts for the Hungarian National Assembly. The number of OEVKs has been **106** under the post-2011 framework; confirm against your boundary and aggregation data.

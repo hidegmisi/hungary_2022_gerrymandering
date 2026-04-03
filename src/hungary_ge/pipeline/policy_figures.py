@@ -49,7 +49,10 @@ PERCENTILE_HEATMAP_SUBTITLE = (
     "metric; direction depends on each metric's sign convention."
 )
 
-EFFICIENCY_GAP_SIGN_NOTE = "Efficiency gap (percentage points, positive favors bloc B)"
+EFFICIENCY_GAP_SIGN_NOTE = (
+    "Efficiency gap (percentage points): (wasted bloc A - wasted bloc B) / two-party turnout; "
+    "positive means net excess waste for bloc A"
+)
 
 _COUNTY_NAME_BY_MAZ: dict[str, str] = {
     "01": "Budapest",

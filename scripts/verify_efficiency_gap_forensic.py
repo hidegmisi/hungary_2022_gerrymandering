@@ -2,6 +2,8 @@
 
 Recomputes county focal-vs-ensemble efficiency gap from stored artifacts and
 compares against county partisan reports and national rollup aggregation.
+Uses the same :func:`~hungary_ge.metrics.compare.focal_vs_ensemble_metrics`
+winner-surplus two-bloc definition as the pipeline (not canonical S&M 50% waste).
 """
 
 from __future__ import annotations

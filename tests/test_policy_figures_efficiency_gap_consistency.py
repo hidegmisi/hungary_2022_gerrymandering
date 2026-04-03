@@ -10,7 +10,11 @@ from hungary_ge.pipeline.policy_figures import (
 
 
 def test_efficiency_gap_direction_text_is_not_contradictory() -> None:
-    assert "positive favors bloc B" in EFFICIENCY_GAP_SIGN_NOTE
+    note = EFFICIENCY_GAP_SIGN_NOTE.lower()
+    assert "wasted bloc a" in note
+    assert "wasted bloc b" in note
+    assert "two-party turnout" in note
+    assert "net excess waste for bloc a" in note
     assert "depends on each metric's sign convention" in PERCENTILE_HEATMAP_SUBTITLE
     assert "favor of bloc A" not in PERCENTILE_HEATMAP_SUBTITLE
 

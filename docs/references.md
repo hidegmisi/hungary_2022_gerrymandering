@@ -12,7 +12,7 @@
 
 ## Partisan metrics (starting points)
 
-- **Efficiency gap** (wasted votes framing): foundational reference Stephanopoulos & McGhee, *Univ. Chi. L. Rev.* (2015); many follow-on refinement and critique pieces exist — cite those you actually use in analysis.
+- **Efficiency gap** (wasted votes framing): foundational reference Stephanopoulos & McGhee, *Univ. Chi. L. Rev.* (2015); many follow-on refinement and critique pieces exist — cite those you actually use in analysis. **This repository** implements a **winner-surplus** variant on two-bloc district totals (see [partisan-metrics.md](partisan-metrics.md)), not the paper’s 50%-threshold waste split; label outputs accordingly when writing for a general audience.
 - **Partisan symmetry / seats–votes:** literature on symmetry tests and related districting metrics (mean–median, declination, etc.) — pick a small set consistent with your report and ensemble outputs.
 
 ## Hungary (stubs)
