@@ -340,14 +340,15 @@ class GeometryQAOptions:
     has at least ``min_county_n_for_tukey`` finite log-area values; otherwise
     area-based Tukey flags are skipped for that county.
 
-    Overlap partner rules are optional: ``None`` disables that threshold.
+    Overlap partner rules: ``None`` disables that threshold. Defaults flag any
+    material overlap as *warn* and *severe* at 15+ distinct partners.
     """
 
     min_county_n_for_tukey: int = 20
     tukey_k_warn: float = 1.5
     tukey_k_severe: float = 3.0
-    warn_if_overlap_partners_ge: int | None = None
-    severe_if_overlap_partners_ge: int | None = None
+    warn_if_overlap_partners_ge: int | None = 1
+    severe_if_overlap_partners_ge: int | None = 15
     warn_polsby_below: float | None = None
 
 

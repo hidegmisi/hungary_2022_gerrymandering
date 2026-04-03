@@ -2,6 +2,7 @@
 
 from __future__ import annotations
 
+import hashlib
 import logging
 import math
 from dataclasses import dataclass, field
@@ -20,6 +21,85 @@ logger = logging.getLogger(__name__)
 
 VOID_TAZ_PLACEHOLDER = "000"
 VOID_SZK_PLACEHOLDER = "000"
+
+# Per-county admin shells (NVI / data-model maz): ``data/raw/admin/01.geojson`` … ``20.geojson``.
+ADMIN_SHELL_GEOJSON_NAMES: tuple[str, ...] = tuple(
+    f"{i:02d}.geojson" for i in range(1, 21)
+)
+
+
+def _normalize_maz(val: str | int) -> str:
+    s = str(val).strip()
+    try:
+        return f"{int(s):02d}"
+    except ValueError:
+        return s
+
+
+def _sha256_file(path: Path) -> str:
+    h = hashlib.sha256()
+    with path.open("rb") as f:
+        for chunk in iter(lambda: f.read(1 << 20), b""):
+            h.update(chunk)
+    return h.hexdigest()
+
+
+def compute_shell_source_sha256(path: Path) -> str:
+    """SHA-256 fingerprint for a single shell file or an admin directory of ``NN.geojson``.
+
+    For a directory, the digest is SHA-256 of sorted lines ``{basename}\\t{file_sha}\\n``
+    over present files among :data:`ADMIN_SHELL_GEOJSON_NAMES` (same set as
+    :func:`read_shell_gdf` loads).
+    """
+    p = Path(path).resolve()
+    if p.is_file():
+        return _sha256_file(p)
+    if not p.is_dir():
+        msg = f"shell path is not a file or directory: {path}"
+        raise ValueError(msg)
+    lines: list[str] = []
+    for name in ADMIN_SHELL_GEOJSON_NAMES:
+        fp = p / name
+        if not fp.is_file():
+            continue
+        lines.append(f"{name}\t{_sha256_file(fp)}")
+    body = "\n".join(lines) + "\n"
+    return hashlib.sha256(body.encode()).hexdigest()
+
+
+def _read_shell_gdf_admin_dir(admin_dir: Path, maz_column: str) -> GeoDataFrame:
+    if maz_column != "maz":
+        msg = (
+            "per-county admin GeoJSON directory requires shell_maz_column='maz' "
+            f"(got {maz_column!r})"
+        )
+        raise ValueError(msg)
+    frames: list[GeoDataFrame] = []
+    for name in ADMIN_SHELL_GEOJSON_NAMES:
+        fp = admin_dir / name
+        if not fp.is_file():
+            continue
+        stem_maz = _normalize_maz(fp.stem)
+        county = gpd.read_file(fp)
+        if county.empty:
+            msg = f"empty shell file: {fp}"
+            raise ValueError(msg)
+        if "ksh" in county.columns:
+            mism = county["ksh"].map(
+                lambda v, expected=stem_maz: _normalize_maz(v) != expected
+            )
+            if bool(mism.any()):
+                msg = f"ksh does not match file stem {stem_maz!r} in {fp}"
+                raise ValueError(msg)
+        county = county.copy()
+        county["maz"] = stem_maz
+        frames.append(county)
+    if not frames:
+        msg = f"no {ADMIN_SHELL_GEOJSON_NAMES[0]!r}… shells found in {admin_dir}"
+        raise ValueError(msg)
+    merged = pd.concat(frames, ignore_index=True)
+    crs = frames[0].crs
+    return GeoDataFrame(merged, geometry="geometry", crs=crs)
 
 
 def _geoms_for_unary_union(geoms: Any) -> list[Any]:
@@ -47,16 +127,21 @@ class GapShellSource:
 
 
 def read_shell_gdf(source: GapShellSource) -> GeoDataFrame:
-    """Load shell geometries with ``maz_column`` from GeoPackage, GeoJSON, or Shapefile.
+    """Load shell geometries with ``maz_column`` from a file or admin directory.
 
-    Args:
-        source: Path and column names. ``layer`` is passed to ``geopandas.read_file``
-            for multi-layer formats (e.g. GPKG).
+    If ``source.path`` is a directory, loads ``01.geojson`` … ``20.geojson`` when
+    present; sets ``maz`` from the file stem and checks ``ksh`` against it when
+    that column exists. Directory mode requires ``maz_column=='maz'``.
+
+    For a file path, ``layer`` is passed to ``geopandas.read_file`` for multi-layer
+    formats (e.g. GPKG).
 
     Returns:
         A non-empty :class:`~geopandas.GeoDataFrame` with geometry and ``maz_column``.
     """
     path = Path(source.path)
+    if path.is_dir():
+        return _read_shell_gdf_admin_dir(path, source.maz_column)
     kwargs: dict[str, Any] = {}
     if source.layer is not None:
         kwargs["layer"] = source.layer
@@ -109,14 +194,6 @@ class GapBuildStats:
     def add_warning(self, msg: str) -> None:
         self.warnings.append(msg)
         logger.warning(msg)
-
-
-def _normalize_maz(val: str | int) -> str:
-    s = str(val).strip()
-    try:
-        return f"{int(s):02d}"
-    except ValueError:
-        return s
 
 
 def _geoms_from_gap_multipiece(geom: Any) -> list[Any]:

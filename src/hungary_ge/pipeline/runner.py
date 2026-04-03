@@ -432,7 +432,10 @@ def main(argv: list[str] | None = None) -> int:
         "--etl-shell",
         type=Path,
         default=None,
-        help="Shell geometry file for --with-gaps (required when --etl-with-gaps is set)",
+        help=(
+            "Shell boundary file or admin directory (01.geojson…20.geojson); "
+            "default: data/raw/admin when --etl-with-gaps"
+        ),
     )
     parser.add_argument(
         "--etl-void-hex",
@@ -681,9 +684,15 @@ def main(argv: list[str] | None = None) -> int:
         )
         return 2
 
-    if args.etl_with_gaps and args.etl_shell is None:
-        print("--etl-shell is required when using --etl-with-gaps", file=sys.stderr)
-        return 2
+    if args.etl_with_gaps:
+        if args.etl_shell is None:
+            args.etl_shell = Path("data/raw/admin")
+        shell_chk = args.etl_shell
+        if not shell_chk.is_absolute():
+            shell_chk = (repo_root / shell_chk).resolve()
+        if not shell_chk.is_file() and not shell_chk.is_dir():
+            print(f"--etl-shell not found: {shell_chk}", file=sys.stderr)
+            return 2
     if args.etl_void_hex and not args.etl_with_gaps:
         print("--etl-void-hex requires --etl-with-gaps", file=sys.stderr)
         return 2

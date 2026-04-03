@@ -7,7 +7,9 @@ Run from the repository root::
 
 With optional void (gap) polygons (county shell minus szvk union)::
 
-    uv run python scripts/build_precinct_layer.py --with-gaps --shell path/to/megye.geojson
+    uv run python scripts/build_precinct_layer.py --with-gaps --shell data/raw/admin
+
+``--shell`` may be a single boundary file or a directory of ``01.geojson`` … ``20.geojson``.
 
 See ``docs/data-model.md`` (ETL / provenance, void units) and ``README.md``.
 """
@@ -29,6 +31,7 @@ from hungary_ge.io import (
     HexVoidOptions,
     build_gap_features_all_counties,
     build_precinct_gdf,
+    compute_shell_source_sha256,
     merge_szvk_and_gaps,
     raw_precinct_list_total,
     read_shell_gdf,
@@ -99,7 +102,10 @@ def main() -> int:
         "--shell",
         type=Path,
         default=None,
-        help="Path to shell GeoJSON/GPKG/Shapefile (required with --with-gaps)",
+        help=(
+            "Shell boundary file (GeoJSON/GPKG/Shapefile) or directory of "
+            "01.geojson…20.geojson (required with --with-gaps)"
+        ),
     )
     parser.add_argument(
         "--shell-maz-column",
@@ -247,8 +253,8 @@ def main() -> int:
         shell_path = args.shell
         if not shell_path.is_absolute():
             shell_path = (repo_root / shell_path).resolve()
-        if not shell_path.is_file():
-            print(f"Shell file not found: {shell_path}", file=sys.stderr)
+        if not shell_path.is_file() and not shell_path.is_dir():
+            print(f"Shell path not found: {shell_path}", file=sys.stderr)
             return 2
         shell_src = GapShellSource(
             path=shell_path,
@@ -285,7 +291,11 @@ def main() -> int:
             options=gap_opts,
         )
         gdf = merge_szvk_and_gaps(gdf, gaps)
-        shell_sha = _sha256_file(shell_path)
+        try:
+            shell_sha = compute_shell_source_sha256(shell_path)
+        except ValueError as exc:
+            print(f"Shell fingerprint failed: {exc}", file=sys.stderr)
+            return 2
         gap_stats_payload = {
             "n_shell_features_read": gap_stats.n_shell_features_read,
             "n_counties_processed": gap_stats.n_counties_processed,

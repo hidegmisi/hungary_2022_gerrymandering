@@ -23,6 +23,7 @@ from hungary_ge.io.gaps import (
     GapShellSource,
     build_gap_features_all_counties,
     build_gap_features_for_maz,
+    compute_shell_source_sha256,
     merge_szvk_and_gaps,
     read_shell_gdf,
 )
@@ -86,6 +87,7 @@ __all__ = [
     "build_gap_features_for_maz",
     "build_precinct_gdf",
     "composite_precinct_id",
+    "compute_shell_source_sha256",
     "merge_szvk_and_gaps",
     "load_processed_geojson",
     "load_processed_geoparquet",

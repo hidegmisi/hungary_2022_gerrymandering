@@ -18,7 +18,7 @@ adds cross-border edges from bicounty runs, then maps — see
 Polygons are drawn from the GeoParquet as stored (WGS84); void hex sizing and filters
 are applied in ``build_precinct_layer`` / ``gaps_hex``, not in this script.
 
-County (megye) outlines default to ``data/raw/admin/hu_megye_shell_maz.geojson`` (black,
+County (megye) outlines default to ``data/raw/admin`` (per-county ``NN.geojson``, black
 thick stroke). Filtered to ``--maz`` when set. Use ``--no-county-borders`` to omit.
 """
 
@@ -43,7 +43,12 @@ from folium.map import CustomPane
 from hungary_ge.config import ProcessedPaths
 from hungary_ge.graph import AdjacencyBuildOptions, adjacency_summary, build_adjacency
 from hungary_ge.graph.national_adjacency import build_national_adjacency_merged
-from hungary_ge.io import load_processed_geoparquet
+from hungary_ge.io import (
+    GapShellSource,
+    load_processed_geoparquet,
+    read_shell_gdf,
+)
+from hungary_ge.pipeline.county_allocation import normalize_maz
 from hungary_ge.problem import OevkProblem, prepare_precinct_layer
 
 
@@ -56,7 +61,7 @@ def _default_parquet_path(repo_root: Path) -> Path:
 
 
 def _default_county_borders_path(repo_root: Path) -> Path:
-    return repo_root / "data/raw/admin/hu_megye_shell_maz.geojson"
+    return repo_root / "data/raw/admin"
 
 
 def _county_border_gdf_for_map(
@@ -64,17 +69,25 @@ def _county_border_gdf_for_map(
     maz: str | None,
 ) -> gpd.GeoDataFrame | None:
     """County/megye shells for Folium; filter to ``maz`` when set."""
-    if not path.is_file():
+    if not path.is_file() and not path.is_dir():
         return None
-    g = gpd.read_file(path)
+    try:
+        g = read_shell_gdf(GapShellSource(path=path, maz_column="maz"))
+    except ValueError as exc:
+        print(  # noqa: T201
+            f"County borders could not be loaded from {path}: {exc}",
+            file=sys.stderr,
+        )
+        return None
     if maz is not None:
         if "maz" not in g.columns:
             print(  # noqa: T201
-                f"County borders file has no 'maz' column; skipping: {path}",
+                f"County borders layer has no 'maz' column; skipping: {path}",
                 file=sys.stderr,
             )
             return None
-        g = g[g["maz"].astype(str) == str(maz)].copy()
+        mzn = normalize_maz(maz)
+        g = g[g["maz"].map(normalize_maz) == mzn].copy()
     if g.empty:
         return None
     if g.crs is not None:
@@ -167,7 +180,7 @@ def main() -> int:
         default=None,
         help=(
             "GeoJSON of county (megye) polygons for outlines "
-            "(default: data/raw/admin/hu_megye_shell_maz.geojson)"
+            "(default: data/raw/admin directory of per-county GeoJSON)"
         ),
     )
     parser.add_argument(
@@ -416,7 +429,7 @@ def main() -> int:
             ).add_to(fg_counties)
             fg_counties.add_to(m)
             county_fg_added = True
-        elif cpath.is_file():
+        elif cpath.is_file() or cpath.is_dir():
             print(  # noqa: T201
                 f"No county features to draw after filter (maz={args.maz!r}): {cpath}",
                 file=sys.stderr,

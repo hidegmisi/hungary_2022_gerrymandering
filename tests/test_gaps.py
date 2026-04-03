@@ -16,6 +16,7 @@ from hungary_ge.io.gaps import (
     GapShellSource,
     build_gap_features_all_counties,
     build_gap_features_for_maz,
+    compute_shell_source_sha256,
     merge_szvk_and_gaps,
     read_shell_gdf,
 )
@@ -38,6 +39,65 @@ def test_read_shell_gdf_roundtrip(tmp_path: Path, crs_metric: str) -> None:
     g = read_shell_gdf(GapShellSource(path=p, maz_column="maz"))
     assert len(g) == 2
     assert "maz" in g.columns
+
+
+def test_read_shell_gdf_admin_directory(tmp_path: Path, crs_metric: str) -> None:
+    admin = tmp_path / "admin"
+    admin.mkdir()
+    for maz, xmin in [("01", 0), ("02", 10)]:
+        g = gpd.GeoDataFrame(
+            {"ksh": [maz], "geometry": [box(xmin, 0, xmin + 1, 1)]},
+            crs=crs_metric,
+        )
+        g.to_file(admin / f"{maz}.geojson", driver="GeoJSON")
+    out = read_shell_gdf(GapShellSource(path=admin, maz_column="maz"))
+    assert len(out) == 2
+    assert set(out["maz"].astype(str).tolist()) == {"01", "02"}
+
+
+def test_read_shell_gdf_admin_directory_ksh_mismatch(
+    tmp_path: Path, crs_metric: str
+) -> None:
+    admin = tmp_path / "admin"
+    admin.mkdir()
+    g = gpd.GeoDataFrame(
+        {"ksh": ["02"], "geometry": [box(0, 0, 1, 1)]},
+        crs=crs_metric,
+    )
+    g.to_file(admin / "01.geojson", driver="GeoJSON")
+    with pytest.raises(ValueError, match="ksh"):
+        read_shell_gdf(GapShellSource(path=admin, maz_column="maz"))
+
+
+def test_read_shell_gdf_admin_directory_requires_maz_column_maz(
+    tmp_path: Path, crs_metric: str
+) -> None:
+    admin = tmp_path / "admin"
+    admin.mkdir()
+    g = gpd.GeoDataFrame(
+        {"ksh": ["01"], "geometry": [box(0, 0, 1, 1)]},
+        crs=crs_metric,
+    )
+    g.to_file(admin / "01.geojson", driver="GeoJSON")
+    with pytest.raises(ValueError, match="shell_maz_column"):
+        read_shell_gdf(GapShellSource(path=admin, maz_column="ksh"))
+
+
+def test_compute_shell_source_sha256_directory(
+    tmp_path: Path, crs_metric: str
+) -> None:
+    admin = tmp_path / "admin"
+    admin.mkdir()
+    for maz in ("01", "02"):
+        g = gpd.GeoDataFrame(
+            {"ksh": [maz], "geometry": [box(0, 0, 1, 1)]},
+            crs=crs_metric,
+        )
+        g.to_file(admin / f"{maz}.geojson", driver="GeoJSON")
+    h1 = compute_shell_source_sha256(admin)
+    h2 = compute_shell_source_sha256(admin)
+    assert h1 == h2
+    assert len(h1) == 64
 
 
 def test_merge_szvk_and_gaps_overlap_raises(crs_metric: str) -> None:
