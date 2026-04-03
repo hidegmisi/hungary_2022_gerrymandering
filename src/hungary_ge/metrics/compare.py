@@ -27,10 +27,9 @@ from hungary_ge.metrics.two_party import (
 from hungary_ge.problem import DEFAULT_PRECINCT_ID_COLUMN
 
 
-def _vote_columns_present(votes: pd.DataFrame, coding: PartisanPartyCoding) -> None:
-    missing = [c for c in coding.all_vote_columns if c not in votes.columns]
-    if missing:
-        msg = f"votes table missing columns {missing}"
+def _votes_precinct_column_ok(votes: pd.DataFrame, precinct_col: str) -> None:
+    if precinct_col not in votes.columns:
+        msg = f"votes table missing {precinct_col!r}"
         raise ValueError(msg)
 
 
@@ -140,12 +139,13 @@ def focal_vs_ensemble_metrics(
     Args:
         focal: DataFrame with ``precinct_col`` and ``focal_district_col`` (e.g. ``oevk_id_full``).
         ensemble: Simulated assignments aligned to the same ``unit_ids`` order as votes join.
-        votes: Precinct vote table (Slice 4 schema).
+        votes: Precinct vote table (Slice 4 schema). Bloc vote columns may be
+            absent for sparse Parquet output; missing columns count as zero per unit.
         party_coding: Which columns sum into bloc A vs B.
         strict_focal_for_voting_units: If True, raise when any unit with positive
             two-party votes lacks a focal district label.
     """
-    _vote_columns_present(votes, party_coding)
+    _votes_precinct_column_ok(votes, precinct_col)
     uid = ensemble.unit_ids
     va, vb = _aligned_vote_arrays(uid, votes, party_coding, precinct_col=precinct_col)
     focal_lbl, n_miss_focal = _focal_labels_for_units(
