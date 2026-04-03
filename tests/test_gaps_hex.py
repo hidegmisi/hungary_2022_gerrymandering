@@ -230,7 +230,7 @@ def test_subdivide_gap_polygons_hex_drops_undivided_when_fraction_requires() -> 
     polys = [box(0, 0, 10, 10)]
     out, meta = subdivide_gap_polygons_hex(
         polys,
-        median_szvk_area_m2=1_000_000.0,
+        mean_szvk_area_m2=1_000_000.0,
         hex_opts=HexVoidOptions(
             hex_cell_area_m2=100_000.0,
             subdivide_min_void_m2=500_000.0,
@@ -247,7 +247,7 @@ def test_subdivide_gap_polygons_hex_keeps_undivided_when_quality_off() -> None:
     polys = [box(0, 0, 10, 10)]
     out, meta = subdivide_gap_polygons_hex(
         polys,
-        median_szvk_area_m2=1_000_000.0,
+        mean_szvk_area_m2=1_000_000.0,
         hex_opts=HexVoidOptions(
             hex_cell_area_m2=100_000.0,
             subdivide_min_void_m2=500_000.0,
@@ -260,12 +260,12 @@ def test_subdivide_gap_polygons_hex_keeps_undivided_when_quality_off() -> None:
     assert meta.get("n_void_polygons_dropped_post_quality") == 0
 
 
-def test_subdivide_gap_polygons_hex_skipped_invalid_median() -> None:
+def test_subdivide_gap_polygons_hex_skipped_invalid_mean() -> None:
     polys = [box(0, 0, 100, 100)]
     meta: dict
     out, meta = subdivide_gap_polygons_hex(
         polys,
-        median_szvk_area_m2=float("nan"),
+        mean_szvk_area_m2=float("nan"),
         hex_opts=HexVoidOptions(
             enabled=True,
             auto_size=True,

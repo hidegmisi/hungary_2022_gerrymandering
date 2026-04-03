@@ -16,10 +16,10 @@ class HexVoidOptions:
 
     enabled: bool = False
     auto_size: bool = True
-    hex_area_factor: float = 1.0
-    """If set, use this cell area (m²) and skip auto sizing from median szvk."""
+    hex_area_factor: float = 1.5
+    """If set, use this cell area (m²) and skip auto sizing from mean szvk area."""
     hex_cell_area_m2: float | None = None
-    """Minimum gap area (m²) to subdivide; if None, use ``median * subdivide_min_void_factor``."""
+    """Minimum gap area (m²) to subdivide; if None, use ``mean_szvk_area * subdivide_min_void_factor``."""
     subdivide_min_void_m2: float | None = None
     subdivide_min_void_factor: float = 4.0
     hex_min_cell_area_m2: float = 10_000.0
@@ -99,10 +99,10 @@ def _fragment_meets_hex_quality(
 
 
 def resolve_hex_cell_area_m2(
-    median_szvk_area_m2: float,
+    mean_szvk_area_m2: float,
     opts: HexVoidOptions,
 ) -> tuple[float | None, list[str]]:
-    """Pick target hex cell area from manual override or median-based auto sizing."""
+    """Pick target hex cell area from manual override or mean-based auto sizing."""
     warns: list[str] = []
     if opts.hex_cell_area_m2 is not None:
         a = opts.hex_cell_area_m2
@@ -112,21 +112,21 @@ def resolve_hex_cell_area_m2(
         return a, warns
     if not opts.auto_size:
         return None, ["hex_void: auto_size is False but hex_cell_area_m2 is unset"]
-    if median_szvk_area_m2 <= 0 or math.isnan(median_szvk_area_m2):
+    if mean_szvk_area_m2 <= 0 or math.isnan(mean_szvk_area_m2):
         return None, [
-            "median szvk area is invalid; set hex_cell_area_m2 or disable hex_void"
+            "mean szvk area is invalid; set hex_cell_area_m2 or disable hex_void"
         ]
-    a = median_szvk_area_m2 * opts.hex_area_factor
+    a = mean_szvk_area_m2 * opts.hex_area_factor
     a = max(opts.hex_min_cell_area_m2, min(a, opts.hex_max_cell_area_m2))
     return a, warns
 
 
 def resolve_subdivide_min_void_m2(
-    median_szvk_area_m2: float, opts: HexVoidOptions
+    mean_szvk_area_m2: float, opts: HexVoidOptions
 ) -> float:
     if opts.subdivide_min_void_m2 is not None:
         return opts.subdivide_min_void_m2
-    base = median_szvk_area_m2
+    base = mean_szvk_area_m2
     if base <= 0 or math.isnan(base):
         return opts.hex_min_cell_area_m2
     return max(opts.hex_min_cell_area_m2, base * opts.subdivide_min_void_factor)
@@ -197,7 +197,7 @@ def subdivide_one_gap_polygon(
 def subdivide_gap_polygons_hex(
     gap_polygons: list[Any],
     *,
-    median_szvk_area_m2: float,
+    mean_szvk_area_m2: float,
     hex_opts: HexVoidOptions,
     min_fragment_m2: float,
 ) -> tuple[list[Polygon], dict[str, Any]]:
@@ -212,7 +212,7 @@ def subdivide_gap_polygons_hex(
         "n_truncated_cells": 0,
         "skipped_hex": False,
     }
-    cell_a, warns = resolve_hex_cell_area_m2(median_szvk_area_m2, hex_opts)
+    cell_a, warns = resolve_hex_cell_area_m2(mean_szvk_area_m2, hex_opts)
     meta["resolve_warnings"] = warns
     if cell_a is None:
         meta["skipped_hex"] = True
@@ -220,7 +220,7 @@ def subdivide_gap_polygons_hex(
         return [p for p in gap_polygons if not p.is_empty], meta
 
     meta["hex_cell_area_m2_used"] = cell_a
-    sub_min = resolve_subdivide_min_void_m2(median_szvk_area_m2, hex_opts)
+    sub_min = resolve_subdivide_min_void_m2(mean_szvk_area_m2, hex_opts)
 
     final: list[Polygon] = []
     total_trunc = 0

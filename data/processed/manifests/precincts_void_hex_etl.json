@@ -45,7 +45,7 @@
     "n_void_cells_after_hex": 83690,
     "n_dropped_below_min_area": 1460,
     "total_gap_area_m2": 56761592878.27837,
-    "median_szvk_area_m2": 3139190.809944127,
+    "mean_szvk_area_m2": 3139190.809944127,
     "hex_cell_area_m2_used": 3139190.809944127,
     "n_hex_cells_truncated": 0,
     "n_void_polygons_dropped_post_quality": 3767,

@@ -146,19 +146,19 @@ def main() -> int:
         "--void-hex-cell-area-m2",
         type=float,
         default=None,
-        help="Fixed hex cell area (m²); overrides median-based auto sizing",
+        help="Fixed hex cell area (m²); overrides mean-based auto sizing",
     )
     parser.add_argument(
         "--void-hex-area-factor",
         type=float,
-        default=1.0,
-        help="Auto cell area = median_szvk_area * factor (after clamps)",
+        default=1.5,
+        help="Auto cell area = mean_szvk_area * factor (after clamps); default 1.5",
     )
     parser.add_argument(
         "--void-hex-subdivide-min-factor",
         type=float,
         default=4.0,
-        help="Subdivide void if area >= median_szvk_area * this factor (unless --void-hex-subdivide-min-m2)",
+        help="Subdivide void if area >= mean_szvk_area * this factor (unless --void-hex-subdivide-min-m2)",
     )
     parser.add_argument(
         "--void-hex-subdivide-min-m2",
@@ -187,7 +187,7 @@ def main() -> int:
     parser.add_argument(
         "--void-hex-no-auto",
         action="store_true",
-        help="Disable median-based sizing (requires --void-hex-cell-area-m2)",
+        help="Disable mean-based sizing (requires --void-hex-cell-area-m2)",
     )
     parser.add_argument(
         "--void-hex-min-fragment-width-m",
@@ -294,7 +294,7 @@ def main() -> int:
             "n_void_cells_after_hex": gap_stats.n_void_cells_after_hex,
             "n_dropped_below_min_area": gap_stats.n_dropped_below_min_area,
             "total_gap_area_m2": gap_stats.total_gap_area_m2,
-            "median_szvk_area_m2": gap_stats.median_szvk_area_m2,
+            "mean_szvk_area_m2": gap_stats.mean_szvk_area_m2,
             "hex_cell_area_m2_used": gap_stats.hex_cell_area_m2_used,
             "n_hex_cells_truncated": gap_stats.n_hex_cells_truncated,
             "n_void_polygons_dropped_post_quality": gap_stats.n_void_polygons_dropped_post_quality,
