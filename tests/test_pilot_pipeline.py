@@ -60,6 +60,10 @@ def test_county_mode_requires_run_id() -> None:
     assert main(["--mode", "county", "--only", "allocation"]) == 2
 
 
+def test_no_progress_flag_accepted_in_county_mode() -> None:
+    assert main(["--mode", "county", "--only", "allocation", "--no-progress"]) == 2
+
+
 def test_allocation_stage_requires_run_id() -> None:
     assert main(["--only", "allocation"]) == 2
 

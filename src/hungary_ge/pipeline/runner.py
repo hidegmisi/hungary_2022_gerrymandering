@@ -38,12 +38,22 @@ from hungary_ge.pipeline.county_sample import (
     run_county_redist_sample,
 )
 from hungary_ge.pipeline.national_rollup import write_national_report
+from hungary_ge.pipeline.progress import county_tqdm
 from hungary_ge.problem import OevkProblem, prepare_precinct_layer
 from hungary_ge.sampling.redist_adapter import RedistBackendError
 
 DEFAULT_STAGES: tuple[str, ...] = ("etl", "votes", "graph")
 
-STAGE_CHOICES = ("etl", "votes", "allocation", "graph", "viz", "sample", "reports", "rollup")
+STAGE_CHOICES = (
+    "etl",
+    "votes",
+    "allocation",
+    "graph",
+    "viz",
+    "sample",
+    "reports",
+    "rollup",
+)
 
 
 def _run_script(repo_root: Path, script_name: str, extra: list[str]) -> int:
@@ -182,9 +192,7 @@ def _run_graph(
     extra_meta: dict[str, Any] | None = None
 
     merge_national = (
-        maz_filter is None
-        and not legacy_national_graph
-        and "maz" in gdf.columns
+        maz_filter is None and not legacy_national_graph and "maz" in gdf.columns
     )
     if maz_filter is None and not legacy_national_graph and "maz" not in gdf.columns:
         print(
@@ -203,7 +211,10 @@ def _run_graph(
         try:
             graph = build_national_adjacency_merged(gdf, prob, adj_opts)
         except ValueError as exc:
-            print(f"{log_prefix}national county-merge graph failed: {exc}", file=sys.stderr)
+            print(
+                f"{log_prefix}national county-merge graph failed: {exc}",
+                file=sys.stderr,
+            )
             return 1
         summ = adjacency_summary(graph)
         print(f"{log_prefix}{summ}")  # noqa: T201
@@ -529,6 +540,14 @@ def main(argv: list[str] | None = None) -> int:
         ),
     )
     parser.add_argument(
+        "--no-progress",
+        action="store_true",
+        help=(
+            "County mode: disable tqdm progress bars on stderr (also disabled when stderr "
+            "is not a TTY; set TQDM_DISABLE=1 to force off)"
+        ),
+    )
+    parser.add_argument(
         "--sample-n-draws",
         type=int,
         default=4,
@@ -762,42 +781,52 @@ def main(argv: list[str] | None = None) -> int:
                 )
                 if maz_list is None:
                     return 1
-                for maz in maz_list:
-                    prefix = f"[run {run_id} county {maz}] "
-                    print(f"{prefix}stage graph: adjacency → counties/{maz}/graph/")  # noqa: T201
-                    edges_out = (
-                        paths.county_graph_dir(run_id, maz) / ADJACENCY_EDGES_PARQUET
-                    )
-                    code = _run_graph(
-                        repo_root,
-                        pq_graph,
-                        contiguity=args.graph_contiguity,
-                        fuzzy=args.graph_fuzzy,
-                        fuzzy_buffering=args.graph_fuzzy_buffering,
-                        fuzzy_tolerance=args.graph_fuzzy_tolerance,
-                        fuzzy_buffer_m=args.graph_fuzzy_buffer_m,
-                        fuzzy_metric_crs=args.graph_fuzzy_metric_crs,
-                        maz_filter=maz,
-                        edges_parquet=edges_out,
-                        log_prefix=prefix,
-                        county_run_id=run_id,
-                        strict_county_connectivity=not args.allow_disconnected_county_graph,
-                    )
-                    if code != 0:
-                        return code
-                    if not args.no_county_maps:
-                        print(f"{prefix}stage graph: Folium map → adjacency_map.html")  # noqa: T201
-                        html_out = paths.county_adjacency_map_path(run_id, maz)
-                        vargv = _map_adjacency_argv(
+                with county_tqdm(
+                    maz_list,
+                    desc="graph",
+                    no_progress=args.no_progress,
+                ) as pbar:
+                    for maz in pbar:
+                        prefix = f"[run {run_id} county {maz}] "
+                        pbar.set_postfix_str(f"{maz} adjacency", refresh=False)
+                        print(f"{prefix}stage graph: adjacency → counties/{maz}/graph/")  # noqa: T201
+                        edges_out = (
+                            paths.county_graph_dir(run_id, maz)
+                            / ADJACENCY_EDGES_PARQUET
+                        )
+                        code = _run_graph(
                             repo_root,
                             pq_graph,
-                            args,
-                            maz=maz,
-                            out=html_out,
+                            contiguity=args.graph_contiguity,
+                            fuzzy=args.graph_fuzzy,
+                            fuzzy_buffering=args.graph_fuzzy_buffering,
+                            fuzzy_tolerance=args.graph_fuzzy_tolerance,
+                            fuzzy_buffer_m=args.graph_fuzzy_buffer_m,
+                            fuzzy_metric_crs=args.graph_fuzzy_metric_crs,
+                            maz_filter=maz,
+                            edges_parquet=edges_out,
+                            log_prefix=prefix,
+                            county_run_id=run_id,
+                            strict_county_connectivity=not args.allow_disconnected_county_graph,
                         )
-                        code = _run_viz(repo_root, vargv, log_prefix=prefix)
                         if code != 0:
                             return code
+                        if not args.no_county_maps:
+                            pbar.set_postfix_str(f"{maz} folium", refresh=False)
+                            print(
+                                f"{prefix}stage graph: Folium map → adjacency_map.html"
+                            )  # noqa: T201
+                            html_out = paths.county_adjacency_map_path(run_id, maz)
+                            vargv = _map_adjacency_argv(
+                                repo_root,
+                                pq_graph,
+                                args,
+                                maz=maz,
+                                out=html_out,
+                            )
+                            code = _run_viz(repo_root, vargv, log_prefix=prefix)
+                            if code != 0:
+                                return code
         elif stage == "sample":
             if args.mode != "county":
                 print("sample stage requires --mode county", file=sys.stderr)
@@ -827,41 +856,51 @@ def main(argv: list[str] | None = None) -> int:
                 else None
             )
             failures: list[str] = []
-            for maz in maz_list_s:
-                prefix = f"[run {run_id} county {maz}] "
-                ens_existing = (
-                    paths.county_ensemble_dir(run_id, maz) / ENSEMBLE_ASSIGNMENTS_PARQUET
-                )
-                if args.sample_skip_existing and ens_existing.is_file():
-                    print(f"{prefix}sample: skip existing {ens_existing.name}")  # noqa: T201
-                    continue
-                ndists_c = nd_map[maz]
-                print(f"{prefix}stage sample: redist SMC, ndists={ndists_c}")  # noqa: T201
-                try:
-                    run_county_redist_sample(
-                        precinct_parquet=pq_graph,
-                        paths=paths,
-                        run_id=run_id,
-                        maz=maz,
-                        ndists=ndists_c,
-                        pop_column=args.sample_pop_column,
-                        adj_opts=adj_sample,
-                        n_draws=args.sample_n_draws,
-                        n_runs=args.sample_n_runs,
-                        seed=args.sample_seed,
-                        pop_tol=args.sample_pop_tol,
-                        compactness=args.sample_compactness,
-                        rscript_path=rs_path,
-                        strict_county_connectivity=not args.allow_disconnected_county_graph,
-                        log_prefix=prefix,
+            with county_tqdm(
+                maz_list_s,
+                desc="sample",
+                no_progress=args.no_progress,
+            ) as pbar:
+                for maz in pbar:
+                    prefix = f"[run {run_id} county {maz}] "
+                    ens_existing = (
+                        paths.county_ensemble_dir(run_id, maz)
+                        / ENSEMBLE_ASSIGNMENTS_PARQUET
                     )
-                except (ValueError, RedistBackendError) as exc:
-                    print(f"{prefix}sample failed: {exc}", file=sys.stderr)
-                    failures.append(maz)
-                    if args.sample_fail_fast:
-                        return 1
-                    continue
-                print(f"{prefix}wrote ensemble_assignments.parquet")  # noqa: T201
+                    if args.sample_skip_existing and ens_existing.is_file():
+                        pbar.set_postfix_str(f"{maz} skip", refresh=True)
+                        print(f"{prefix}sample: skip existing {ens_existing.name}")  # noqa: T201
+                        continue
+                    ndists_c = nd_map[maz]
+                    pbar.set_postfix_str(f"{maz} SMC ndists={ndists_c}", refresh=False)
+                    print(f"{prefix}stage sample: redist SMC, ndists={ndists_c}")  # noqa: T201
+                    try:
+                        run_county_redist_sample(
+                            precinct_parquet=pq_graph,
+                            paths=paths,
+                            run_id=run_id,
+                            maz=maz,
+                            ndists=ndists_c,
+                            pop_column=args.sample_pop_column,
+                            adj_opts=adj_sample,
+                            n_draws=args.sample_n_draws,
+                            n_runs=args.sample_n_runs,
+                            seed=args.sample_seed,
+                            pop_tol=args.sample_pop_tol,
+                            compactness=args.sample_compactness,
+                            rscript_path=rs_path,
+                            strict_county_connectivity=not args.allow_disconnected_county_graph,
+                            log_prefix=prefix,
+                        )
+                    except (ValueError, RedistBackendError) as exc:
+                        pbar.set_postfix_str(f"{maz} fail", refresh=True)
+                        print(f"{prefix}sample failed: {exc}", file=sys.stderr)
+                        failures.append(maz)
+                        if args.sample_fail_fast:
+                            return 1
+                        continue
+                    pbar.set_postfix_str(f"{maz} done", refresh=True)
+                    print(f"{prefix}wrote ensemble_assignments.parquet")  # noqa: T201
             if failures:
                 print(
                     f"[run {run_id}] sample: failed counties: {sorted(failures)!r}",
@@ -900,42 +939,55 @@ def main(argv: list[str] | None = None) -> int:
                 else None
             )
             if party_coding_path is not None and not party_coding_path.is_file():
-                print(f"reports: missing party coding {party_coding_path}", file=sys.stderr)
+                print(
+                    f"reports: missing party coding {party_coding_path}",
+                    file=sys.stderr,
+                )
                 return 1
             r_failures: list[str] = []
-            for maz in maz_list_rpt:
-                prefix = f"[run {run_id} county {maz}] "
-                ens_check = (
-                    paths.county_ensemble_dir(run_id, maz) / ENSEMBLE_ASSIGNMENTS_PARQUET
-                )
-                if not ens_check.is_file():
-                    print(
-                        f"{prefix}reports: skip (no {ens_check.name})",
-                        file=sys.stderr,
+            with county_tqdm(
+                maz_list_rpt,
+                desc="reports",
+                no_progress=args.no_progress,
+            ) as pbar:
+                for maz in pbar:
+                    prefix = f"[run {run_id} county {maz}] "
+                    ens_check = (
+                        paths.county_ensemble_dir(run_id, maz)
+                        / ENSEMBLE_ASSIGNMENTS_PARQUET
                     )
-                    continue
-                print(f"{prefix}stage reports: diagnostics + partisan")  # noqa: T201
-                try:
-                    run_county_reports(
-                        paths=paths,
-                        run_id=run_id,
-                        maz=maz,
-                        votes_parquet=votes_path,
-                        focal_parquet=focal_path,
-                        pop_column=args.reports_pop_column,
-                        pop_tol=args.reports_pop_tol,
-                        party_coding=None,
-                        party_coding_path=party_coding_path,
-                        strict_focal_for_voting_units=not args.reports_loose_focal,
-                        include_smc_log_scan=not args.reports_no_smc_log_scan,
-                    )
-                except (OSError, ValueError) as exc:
-                    print(f"{prefix}reports failed: {exc}", file=sys.stderr)
-                    r_failures.append(maz)
-                    if args.reports_fail_fast:
-                        return 1
-                    continue
-                print(f"{prefix}wrote diagnostics.json and partisan_report.json")  # noqa: T201
+                    if not ens_check.is_file():
+                        pbar.set_postfix_str(f"{maz} skip", refresh=True)
+                        print(
+                            f"{prefix}reports: skip (no {ens_check.name})",
+                            file=sys.stderr,
+                        )
+                        continue
+                    pbar.set_postfix_str(f"{maz} reports", refresh=False)
+                    print(f"{prefix}stage reports: diagnostics + partisan")  # noqa: T201
+                    try:
+                        run_county_reports(
+                            paths=paths,
+                            run_id=run_id,
+                            maz=maz,
+                            votes_parquet=votes_path,
+                            focal_parquet=focal_path,
+                            pop_column=args.reports_pop_column,
+                            pop_tol=args.reports_pop_tol,
+                            party_coding=None,
+                            party_coding_path=party_coding_path,
+                            strict_focal_for_voting_units=not args.reports_loose_focal,
+                            include_smc_log_scan=not args.reports_no_smc_log_scan,
+                        )
+                    except (OSError, ValueError) as exc:
+                        pbar.set_postfix_str(f"{maz} fail", refresh=True)
+                        print(f"{prefix}reports failed: {exc}", file=sys.stderr)
+                        r_failures.append(maz)
+                        if args.reports_fail_fast:
+                            return 1
+                        continue
+                    pbar.set_postfix_str(f"{maz} done", refresh=True)
+                    print(f"{prefix}wrote diagnostics.json and partisan_report.json")  # noqa: T201
             if r_failures:
                 print(
                     f"[run {run_id}] reports: failed counties: {sorted(r_failures)!r}",
@@ -988,20 +1040,26 @@ def main(argv: list[str] | None = None) -> int:
                 )
                 if maz_list_v is None:
                     return 1
-                for maz in maz_list_v:
-                    prefix = f"[run {run_id} county {maz}] "
-                    print(f"{prefix}stage viz: Folium map")  # noqa: T201
-                    vo = paths.county_adjacency_map_path(run_id, maz)
-                    viz_extra = _map_adjacency_argv(
-                        repo_root,
-                        pq_graph,
-                        args,
-                        maz=maz,
-                        out=vo,
-                    )
-                    code = _run_viz(repo_root, viz_extra, log_prefix=prefix)
-                    if code != 0:
-                        return code
+                with county_tqdm(
+                    maz_list_v,
+                    desc="viz",
+                    no_progress=args.no_progress,
+                ) as pbar:
+                    for maz in pbar:
+                        prefix = f"[run {run_id} county {maz}] "
+                        pbar.set_postfix_str(f"{maz} folium", refresh=False)
+                        print(f"{prefix}stage viz: Folium map")  # noqa: T201
+                        vo = paths.county_adjacency_map_path(run_id, maz)
+                        viz_extra = _map_adjacency_argv(
+                            repo_root,
+                            pq_graph,
+                            args,
+                            maz=maz,
+                            out=vo,
+                        )
+                        code = _run_viz(repo_root, viz_extra, log_prefix=prefix)
+                        if code != 0:
+                            return code
 
     return 0
 
