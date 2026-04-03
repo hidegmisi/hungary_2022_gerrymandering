@@ -11,6 +11,10 @@ With optional void (gap) polygons (county shell minus szvk union)::
 
 ``--shell`` may be a single boundary file or a directory of ``01.geojson`` … ``20.geojson``.
 
+By default, szvk geometries are repaired in the gap metric CRS (``make_valid`` /
+``buffer(0)``) before gap union and before writing Parquet; see manifest
+``geometry_repair``. Use ``--no-geometry-repair`` to skip.
+
 See ``docs/data-model.md`` (ETL / provenance, void units) and ``README.md``.
 """
 
@@ -35,6 +39,7 @@ from hungary_ge.io import (
     merge_szvk_and_gaps,
     raw_precinct_list_total,
     read_shell_gdf,
+    repair_precinct_geometries,
     write_processed_geojson,
     write_processed_geoparquet,
 )
@@ -118,6 +123,11 @@ def main() -> int:
         type=str,
         default=None,
         help="Optional layer name for multi-layer formats (e.g. GPKG)",
+    )
+    parser.add_argument(
+        "--no-geometry-repair",
+        action="store_true",
+        help="Skip metric make_valid/buffer(0) on szvk before gap union and parquet write",
     )
     parser.add_argument(
         "--gap-metric-crs",
@@ -229,6 +239,14 @@ def main() -> int:
 
     raw_total = raw_precinct_list_total(szavkor)
     gdf, stats = build_precinct_gdf(szavkor)
+
+    geometry_repair_payload: dict[str, object] | None = None
+    if not args.no_geometry_repair:
+        gdf, repair_stats = repair_precinct_geometries(
+            gdf,
+            metric_crs=args.gap_metric_crs,
+        )
+        geometry_repair_payload = repair_stats.as_manifest_dict()
 
     if args.void_hex and not args.with_gaps:
         print("--void-hex requires --with-gaps", file=sys.stderr)
@@ -354,6 +372,9 @@ def main() -> int:
         payload["warnings"] = stats.warnings[:500]
         if len(stats.warnings) > 500:
             payload["warnings_truncated"] = True
+
+    if geometry_repair_payload is not None:
+        payload["geometry_repair"] = geometry_repair_payload
 
     if args.with_gaps and gap_stats_payload is not None:
         payload["with_gaps"] = True

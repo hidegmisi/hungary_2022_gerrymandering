@@ -473,6 +473,11 @@ def main(argv: list[str] | None = None) -> int:
         help="Optional --out-parquet for ETL (e.g. precincts_void_hex.parquet)",
     )
     parser.add_argument(
+        "--etl-no-geometry-repair",
+        action="store_true",
+        help="Pass --no-geometry-repair to build_precinct_layer.py",
+    )
+    parser.add_argument(
         "--graph-contiguity",
         choices=("queen", "rook"),
         default="queen",
@@ -765,6 +770,8 @@ def main(argv: list[str] | None = None) -> int:
                 if not out_pq.is_absolute():
                     out_pq = (repo_root / out_pq).resolve()
                 extra.extend(["--out-parquet", str(out_pq)])
+            if args.etl_no_geometry_repair:
+                extra.append("--no-geometry-repair")
             prefix = f"[run {run_id}] " if args.mode == "county" and run_id else ""
             print(f"{prefix}stage etl: build_precinct_layer.py")  # noqa: T201
             code = _run_script(repo_root, "build_precinct_layer.py", extra)

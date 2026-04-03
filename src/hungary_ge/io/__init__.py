@@ -52,6 +52,10 @@ from hungary_ge.io.precinct_geometry_qa import (
     filter_szvk_rows,
     summarize_qa,
 )
+from hungary_ge.io.precinct_geometry_repair import (
+    RepairStats,
+    repair_precinct_geometries,
+)
 from hungary_ge.io.szavkor_parse import (
     SzavkorRecord,
     composite_precinct_id,
@@ -77,6 +81,7 @@ __all__ = [
     "load_list_party_map",
     "load_votes_table",
     "PrecinctBuildStats",
+    "RepairStats",
     "SzavkorRecord",
     "apply_qa_flags",
     "compute_precinct_metrics",
@@ -95,6 +100,7 @@ __all__ = [
     "parse_poligon",
     "read_shell_gdf",
     "raw_precinct_list_total",
+    "repair_precinct_geometries",
     "write_electoral_parquets",
     "write_processed_geojson",
     "write_processed_geoparquet",

@@ -214,6 +214,27 @@ def test_compute_precinct_overlaps_missing_maz_column() -> None:
         compute_precinct_overlaps(gdf)
 
 
+def test_compute_precinct_overlaps_repair_geometries_false() -> None:
+    a = box(0.0, 0.0, 1.0, 1.0)
+    b = box(0.5, 0.0, 1.5, 1.0)
+    gdf = gpd.GeoDataFrame(
+        {
+            DEFAULT_PRECINCT_ID_COLUMN: ["p-a", "p-b"],
+            "maz": ["01", "01"],
+            "geometry": [a, b],
+        },
+        crs="EPSG:32633",
+    )
+    agg, edges = compute_precinct_overlaps(
+        gdf,
+        min_overlap_m2=0.01,
+        min_overlap_ratio=None,
+        repair_geometries=False,
+    )
+    assert agg["n_overlap_partners"].tolist() == [1, 1]
+    assert len(edges) == 1
+
+
 def test_compute_precinct_overlaps_empty_gdf() -> None:
     gdf = gpd.GeoDataFrame(
         {

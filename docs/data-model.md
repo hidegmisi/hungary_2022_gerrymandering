@@ -123,6 +123,8 @@ NVI polygons do not tile all land (e.g. uninhabited belts around cities). Option
 
 Implementation types: [`hungary_ge.io.gaps`](../src/hungary_ge/io/gaps.py) (**`GapShellSource`**, **`GapBuildOptions`** including **`hex_void`**, **`GapBuildStats`**, **`read_shell_gdf`**, **`build_gap_features_*`**, **`merge_szvk_and_gaps`**) and [`hungary_ge.io.gaps_hex`](../src/hungary_ge/io/gaps_hex.py) (**`HexVoidOptions`**, tessellation helpers).
 
+**QA / diagnostics:** To quantify county shell vs precinct union overlap and explain large void coverage, run [`scripts/verify_void_gap_metrics.py`](../scripts/verify_void_gap_metrics.py) and see [void-gap-verification.md](void-gap-verification.md). If an admin export uses **wrong stems for NVI `maz` 11–16**, run [`scripts/fix_admin_shell_nvi_mapping.py`](../scripts/fix_admin_shell_nvi_mapping.py) once (see void-gap doc) before gap ETL.
+
 ### Electoral tables (Slice 4): `precinct_votes.parquet` and `focal_oevk_assignments.parquet`
 
 Built from the same `szavkor_topo` walk as geometry ETL via [`hungary_ge.io.electoral_etl`](../src/hungary_ge/io/electoral_etl.py) and [`scripts/build_precinct_votes.py`](../scripts/build_precinct_votes.py).

@@ -1,4 +1,10 @@
-"""Precinct geometry QA: metrics, overlaps, and QA flags (slices 1–3)."""
+"""Precinct geometry QA: metrics, overlaps, and QA flags (slices 1–3).
+
+Operational note: after ETL runs :func:`~hungary_ge.io.precinct_geometry_repair.repair_precinct_geometries`,
+overlap reports are more reliable. For *reporting* only, consider raising
+``min_overlap_m2`` (default 5 m²) or ``min_overlap_ratio`` to de-emphasize boundary
+slivers versus substantive duplicate coverage.
+"""
 
 from __future__ import annotations
 
@@ -13,7 +19,10 @@ import pandas as pd
 from geopandas import GeoDataFrame
 from shapely import area as shp_area
 from shapely import intersection as shp_intersection
+from shapely import make_valid
+from shapely.errors import GEOSException
 
+from hungary_ge.io.precinct_geometry_repair import repair_precinct_geometries
 from hungary_ge.problem import DEFAULT_PRECINCT_ID_COLUMN
 
 
@@ -146,6 +155,28 @@ def _empty_overlap_edges() -> pd.DataFrame:
     )
 
 
+def _pairwise_intersection_areas_m2(
+    geoms: np.ndarray[Any, Any],
+    rows_l: np.ndarray,
+    rows_r: np.ndarray,
+) -> np.ndarray:
+    """Intersection area (m²) for candidate pairs; fallback if vectorized GEOS fails."""
+    try:
+        inter = shp_intersection(geoms[rows_l], geoms[rows_r])
+        return np.asarray(shp_area(inter), dtype="float64")
+    except GEOSException:
+        out = np.zeros(len(rows_l), dtype="float64")
+        for i in range(len(rows_l)):
+            a = geoms[rows_l[i]]
+            b = geoms[rows_r[i]]
+            try:
+                inter = shp_intersection(a, b)
+            except GEOSException:
+                inter = shp_intersection(make_valid(a), make_valid(b))
+            out[i] = float(shp_area(inter))
+        return out
+
+
 def _iter_maz_groups(m_work: GeoDataFrame) -> Iterator[tuple[str, GeoDataFrame]]:
     """Yield ``(maz_key, subframe)`` with rows in original index order within each group."""
     keys = m_work["_maz_n"].unique()
@@ -161,14 +192,20 @@ def compute_precinct_overlaps(
     metric_crs: str = "EPSG:32633",
     maz_column: str = "maz",
     id_column: str = DEFAULT_PRECINCT_ID_COLUMN,
-    min_overlap_m2: float = 1.0,
+    min_overlap_m2: float = 5.0,
     min_overlap_ratio: float | None = 0.001,
+    repair_geometries: bool = True,
 ) -> tuple[pd.DataFrame, pd.DataFrame]:
     """Detect **material** polygon overlaps between distinct precincts, scoped per county.
 
     For each normalized ``maz``, self-joins on ``intersects``, computes intersection
     area in *metric_crs*, and keeps pairs above ``min_overlap_m2`` and (if set)
     ``min_overlap_ratio`` = intersection area / min(area_i, area_j).
+
+    If *repair_geometries* is True (default), applies the same metric
+    ``make_valid`` / ``buffer(0)`` repair as ETL (``unit_kind == \"szvk\"`` when that
+    column exists) before analysis. Pairwise intersection uses a GEOS fallback if
+    the vectorized call raises.
 
     Returns:
         ``(per_precinct, edges)``. **per_precinct** has one row per input row
@@ -195,7 +232,16 @@ def compute_precinct_overlaps(
     if len(gdf) == 0:
         return _empty_overlap_agg(), _empty_overlap_edges()
 
-    m_work = gdf.to_crs(metric_crs).copy()
+    if repair_geometries:
+        g_work, _rstats = repair_precinct_geometries(
+            gdf,
+            metric_crs=metric_crs,
+            id_column=id_column,
+        )
+    else:
+        g_work = gdf
+
+    m_work = g_work.to_crs(metric_crs).copy()
     m_work["_maz_n"] = m_work[maz_column].map(_normalize_maz)
 
     stats_by_id: dict[str, dict[str, Any]] = {}
@@ -247,8 +293,7 @@ def compute_precinct_overlaps(
 
         rows_l = joined["_oid"].to_numpy(dtype=np.int64)
         rows_r = joined["_oid_r"].to_numpy(dtype=np.int64)
-        inter = shp_intersection(geoms[rows_l], geoms[rows_r])
-        inter_areas = np.asarray(shp_area(inter), dtype="float64")
+        inter_areas = _pairwise_intersection_areas_m2(geoms, rows_l, rows_r)
         min_side = np.minimum(poly_areas[rows_l], poly_areas[rows_r])
         with np.errstate(divide="ignore", invalid="ignore"):
             ratios = np.where(min_side > 0.0, inter_areas / min_side, 0.0)
@@ -322,7 +367,7 @@ def compute_precinct_overlaps(
                 "max_overlap_ratio": float(max_ratio[spid]) if pset else 0.0,
             }
 
-    order = gdf[id_column].astype(str).tolist()
+    order = g_work[id_column].astype(str).tolist()
     agg_df = pd.DataFrame([stats_by_id[pid] for pid in order])
     if edge_frames:
         edges_df = pd.concat(edge_frames, ignore_index=True)
