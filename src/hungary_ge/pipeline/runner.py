@@ -889,7 +889,7 @@ def main(argv: list[str] | None = None) -> int:
                     for maz in pbar:
                         prefix = f"[run {run_id} county {maz}] "
                         pbar.set_postfix_str(f"{maz} adjacency", refresh=False)
-                        print(f"{prefix}stage graph: adjacency → counties/{maz}/graph/")  # noqa: T201
+                        print(f"{prefix}stage graph: adjacency -> counties/{maz}/graph/")  # noqa: T201
                         edges_out = (
                             paths.county_graph_dir(run_id, maz)
                             / ADJACENCY_EDGES_PARQUET
@@ -914,7 +914,7 @@ def main(argv: list[str] | None = None) -> int:
                         if not args.no_county_maps:
                             pbar.set_postfix_str(f"{maz} folium", refresh=False)
                             print(
-                                f"{prefix}stage graph: Folium map → adjacency_map.html"
+                                f"{prefix}stage graph: Folium map -> adjacency_map.html"
                             )  # noqa: T201
                             html_out = paths.county_adjacency_map_path(run_id, maz)
                             vargv = _map_adjacency_argv(
