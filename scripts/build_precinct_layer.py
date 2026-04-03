@@ -15,6 +15,10 @@ By default, szvk geometries are repaired in the gap metric CRS (``make_valid`` /
 ``buffer(0)``) before gap union and before writing Parquet; see manifest
 ``geometry_repair``. Use ``--no-geometry-repair`` to skip.
 
+Optional ``--hub-drop-enable`` removes extreme overlap-hub szvk polygons after repair
+and before gap union (spatial layer only); see manifest ``overlap_hub_drop``.
+Vote extracts are unchanged; dropped ids may still appear in ``precinct_votes``.
+
 See ``docs/data-model.md`` (ETL / provenance, void units) and ``README.md``.
 """
 
@@ -42,6 +46,10 @@ from hungary_ge.io import (
     repair_precinct_geometries,
     write_processed_geojson,
     write_processed_geoparquet,
+)
+from hungary_ge.io.precinct_geometry_hub_drop import (
+    OverlapHubDropOptions,
+    drop_overlap_hub_szvk,
 )
 
 
@@ -128,6 +136,46 @@ def main() -> int:
         "--no-geometry-repair",
         action="store_true",
         help="Skip metric make_valid/buffer(0) on szvk before gap union and parquet write",
+    )
+    parser.add_argument(
+        "--hub-drop-enable",
+        action="store_true",
+        help="After repair: drop extreme overlap-hub szvk rows before gap union / write",
+    )
+    parser.add_argument(
+        "--hub-drop-hard-partners",
+        type=int,
+        default=100,
+        help="Hard tier: drop if overlap partners >= this (0 disables hard tier); default 100",
+    )
+    parser.add_argument(
+        "--hub-drop-soft-partners",
+        type=int,
+        default=30,
+        help="Soft tier: min partners when mass rule applies (0 disables soft tier); default 30",
+    )
+    parser.add_argument(
+        "--hub-drop-mass-ratio",
+        type=float,
+        default=1.5,
+        help="Soft tier: require sum_overlap_area_m2 >= ratio * area_m2; default 1.5",
+    )
+    parser.add_argument(
+        "--hub-drop-min-overlap-m2",
+        type=float,
+        default=5.0,
+        help="Material overlap threshold (m²) passed to overlap detection; default 5",
+    )
+    parser.add_argument(
+        "--hub-drop-max-rows",
+        type=int,
+        default=200,
+        help="Abort if more than this many precincts would be dropped (0 = no limit)",
+    )
+    parser.add_argument(
+        "--hub-drop-allow-exceed-max",
+        action="store_true",
+        help="Allow dropping more precincts than --hub-drop-max-rows",
     )
     parser.add_argument(
         "--gap-metric-crs",
@@ -248,6 +296,22 @@ def main() -> int:
         )
         geometry_repair_payload = repair_stats.as_manifest_dict()
 
+    overlap_hub_drop_payload: dict[str, object] | None = None
+    if args.hub_drop_enable:
+        hard = args.hub_drop_hard_partners if args.hub_drop_hard_partners > 0 else None
+        soft = args.hub_drop_soft_partners if args.hub_drop_soft_partners > 0 else None
+        hub_opts = OverlapHubDropOptions(
+            hard_min_partners=hard,
+            soft_min_partners=soft,
+            mass_ratio=float(args.hub_drop_mass_ratio),
+            max_drop_rows=int(args.hub_drop_max_rows),
+            allow_exceed_max=bool(args.hub_drop_allow_exceed_max),
+            overlap_min_overlap_m2=float(args.hub_drop_min_overlap_m2),
+            metric_crs=args.gap_metric_crs,
+        )
+        gdf, hub_stats = drop_overlap_hub_szvk(gdf, options=hub_opts)
+        overlap_hub_drop_payload = hub_stats.manifest_dict()
+
     if args.void_hex and not args.with_gaps:
         print("--void-hex requires --with-gaps", file=sys.stderr)
         return 2
@@ -354,13 +418,20 @@ def main() -> int:
     if manifest_path is not None and not manifest_path.is_absolute():
         manifest_path = (repo_root / manifest_path).resolve()
 
+    if "unit_kind" in gdf.columns:
+        n_rows_szvk_manifest = int(
+            (gdf["unit_kind"].astype(str) == "szvk").sum(),
+        )
+    else:
+        n_rows_szvk_manifest = len(gdf)
+
     payload: dict[str, Any] = {
         "szavkor_root": str(szavkor),
         "raw_list_total": raw_total,
         "n_files_read": stats.n_files_read,
         "n_records_in": stats.n_records_in,
         "n_rows_out": len(gdf),
-        "n_rows_szvk": stats.n_rows_out,
+        "n_rows_szvk": n_rows_szvk_manifest,
         "n_dropped_unrepaired": stats.n_dropped_unrepaired,
         "out_parquet": str(out_parquet),
         "out_parquet_sha256": _sha256_file(out_parquet),
@@ -375,6 +446,9 @@ def main() -> int:
 
     if geometry_repair_payload is not None:
         payload["geometry_repair"] = geometry_repair_payload
+
+    if overlap_hub_drop_payload is not None:
+        payload["overlap_hub_drop"] = overlap_hub_drop_payload
 
     if args.with_gaps and gap_stats_payload is not None:
         payload["with_gaps"] = True
@@ -391,10 +465,13 @@ def main() -> int:
     extra = ""
     if args.with_gaps and gap_stats_payload is not None:
         extra = f", void polygons: {gap_stats_payload['n_gap_polygons']}"
+    hub_extra = ""
+    if overlap_hub_drop_payload is not None:
+        hub_extra = f", hub-drop szvk: {overlap_hub_drop_payload.get('n_dropped', 0)}"
     print(
         f"Wrote {len(gdf)} rows to {out_parquet} "
-        f"(szvk rows: {stats.n_rows_out}, raw list rows: {raw_total}, "
-        f"dropped szvk: {stats.n_dropped_unrepaired}{extra})"
+        f"(szvk rows: {n_rows_szvk_manifest}, raw list rows: {raw_total}, "
+        f"dropped szvk (unrepaired): {stats.n_dropped_unrepaired}{hub_extra}{extra})"
     )
     return 0
 
