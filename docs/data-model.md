@@ -253,6 +253,14 @@ Build outputs and derived layers use **fixed basenames** under **`data/processed
 
 **Optional reproducibility:** the ETL script writes `data/processed/manifests/precincts_etl.json` by default (row counts, SHA-256 of the parquet output, CRS). Other manifests may use `data/processed/manifests/<build_id>.json` (stdlib JSON).
 
+### Policy memo figure artifacts (pipeline `policy_figures` stage)
+
+For county-mode runs with reports + rollup, the optional `policy_figures` stage writes publication-ready chart artifacts under:
+
+- `data/processed/runs/<RUN_ID>/policy_figures/`
+
+Outputs are fixed-name PNGs plus `figures_manifest.json` (schema `hungary_ge.policy_figures/v1`) that maps each figure to source files/metrics and suggested memo section. These figures are intended for enacted-vs-ensemble comparisons and draw diagnostics in policy-facing writeups.
+
 ## Code layout and `data/processed/` artifacts
 
 The [`src/hungary_ge/`](../src/hungary_ge/) package aligns pipeline code with this data model:

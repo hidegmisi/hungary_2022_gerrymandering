@@ -89,15 +89,33 @@ Pick a **`RUN_ID`** (folder name under `data/processed/runs/`).
 
 5. **`rollup`** — `data/processed/runs/<RUN_ID>/national_report.json` (use `--rollup-allow-partial` if some counties lack reports).
 
+6. **`policy_figures`** — memo-ready PNG figures + `figures_manifest.json` under `data/processed/runs/<RUN_ID>/policy_figures/`.
+   - Includes enacted-vs-ensemble comparisons and draw diagnostics for policy writeups.
+   - Style presets: `--policy-figures-style memo-light` (screen) or `memo-print` (print contrast).
+   - **Progress:** tqdm on stderr when it is a TTY (and not `--no-progress` / `TQDM_DISABLE`). If bars are off, the stage still prints **flushed stdout** status lines (national rollup, county JSON load, each plot, each draw-metric task). The longest silent stretch is usually **`load_plan_ensemble` reading a large county Parquet** before per-draw tqdm starts; the log line before that load states the file size.
+
 Example **one-shot** chain after allocation (national mode is unchanged for `etl`/`votes`):
 
 ```bash
 RUN_ID=pilot-2022-04
 uv run python -m hungary_ge.pipeline --mode county --run-id "$RUN_ID" \
-  --only graph sample reports rollup
+  --only graph sample reports rollup policy_figures
 ```
 
 County artifacts live under `data/processed/runs/<RUN_ID>/counties/<maz>/` (`graph/`, `ensemble/`, `reports/`). **Caveat:** ensembles are drawn **within each county** with fixed district counts; they are not a single national coupled sampler over 106 districts.
+
+Policy memo figure artifacts live under `data/processed/runs/<RUN_ID>/policy_figures/` and include:
+
+- `01_national_weighted_focal_vs_ensemble.png`
+- `02_county_percentile_heatmap.png`
+- `03_seat_share_delta_lollipop_by_county.png`
+- `04_efficiency_gap_focal_vs_interval.png`
+- `05_selected_counties_seat_share_draw_histograms.png`
+- `06_selected_counties_effgap_draw_histograms.png`
+- `07_pop_deviation_draw_histograms.png`
+- `08_unique_draw_fraction_by_county.png`
+- `09_duplicate_draws_vs_weight_scatter.png`
+- `figures_manifest.json`
 
 ### Ensemble plan preview (Folium)
 
