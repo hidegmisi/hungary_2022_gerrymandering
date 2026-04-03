@@ -76,7 +76,7 @@ Pick a **`RUN_ID`** (folder name under `data/processed/runs/`).
    uv run python -m hungary_ge.pipeline --mode county --run-id "$RUN_ID" --only graph
    ```
 
-   Folium maps after each county require `uv sync --extra viz`. To skip them: `--no-county-maps`. Per-county tqdm progress bars go to stderr; use `--no-progress` or set `TQDM_DISABLE=1` for CI or plain log capture.
+   Folium maps after each county require `uv sync --extra viz`. To skip them: `--no-county-maps`. Per-county tqdm progress bars go to stderr; use `--no-progress` or set `TQDM_DISABLE=1` for CI or plain log capture. Unless `--no-progress`, `redist_smc` prints SMC split progress to stderr (mirrored live from R).
 
 3. **`sample`** — R + `redist` per county (tune `--sample-n-draws`, `--sample-seed`, etc.):
 

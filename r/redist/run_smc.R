@@ -84,6 +84,9 @@ nsim <- as.integer(meta$n_sims)
 nrun <- as.integer(meta$n_runs)
 cmp <- as.numeric(if (!is.null(meta$compactness)) meta$compactness else 1)
 
+smc_silent <- if (!is.null(meta$smc_silent)) isTRUE(meta$smc_silent) else FALSE
+smc_verbose <- if (!is.null(meta$smc_verbose)) isTRUE(meta$smc_verbose) else TRUE
+
 extras <- meta$redist_extras
 ncores <- 1L
 if (is.list(extras) && !is.null(extras$ncores)) {
@@ -96,7 +99,8 @@ sims <- redist_smc(
   runs = nrun,
   compactness = cmp,
   ncores = ncores,
-  silent = TRUE
+  verbose = smc_verbose,
+  silent = smc_silent
 )
 
 mat <- get_plans_matrix(sims)

@@ -25,6 +25,9 @@ class SamplerConfig:
         compactness: `redist_smc` compactness argument (default 1).
         redist_extras: Optional pass-through for advanced `redist` arguments
             (serialized in ``run.json`` where relevant).
+        redist_progress: When True (default), ``run_smc.R`` calls ``redist_smc`` with
+            ``silent=FALSE`` and ``verbose=TRUE``, and Python streams R stderr live
+            (SMC split progress). Set False for quiet runs (e.g. with ``--no-progress``).
     """
 
     n_sims: int
@@ -34,6 +37,7 @@ class SamplerConfig:
     pop_tol: float = _DEFAULT_ELECTOR_BALANCE.max_relative_deviation
     compactness: float = 1.0
     redist_extras: dict[str, Any] = field(default_factory=dict)
+    redist_progress: bool = True
 
     def __post_init__(self) -> None:
         if self.n_sims < 1:

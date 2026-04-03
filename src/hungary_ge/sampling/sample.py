@@ -41,7 +41,8 @@ def sample_plans(
         seed: Optional RNG seed.
         **kwargs: Use ``backend="redist"`` with ``gdf=GeoDataFrame``, optional
             ``constraint_spec``, ``work_dir``, ``bundle_dir``, ``rscript_path``,
-            ``pop_tol``, ``compactness``, ``redist_extras`` dict, or a
+            ``pop_tol``, ``compactness``, ``redist_extras`` dict, ``redist_progress``
+            (live R stderr / SMC diagnostics), or a
             pre-built :class:`SamplerConfig` as ``sampler_config``.
 
     Raises:
@@ -78,6 +79,7 @@ def sample_plans(
                 ),
                 compactness=float(kwargs.get("compactness", 1.0)),
                 redist_extras=dict(kwargs.get("redist_extras") or {}),
+                redist_progress=bool(kwargs.get("redist_progress", True)),
             )
 
         if work_raw is not None:
@@ -111,6 +113,8 @@ def sample_plans(
                 msg = "redist_extras must be a dict[str, object]"
                 raise TypeError(msg)
             cfg = replace(cfg, redist_extras=dict(rex))
+        if kwargs.get("redist_progress") is not None:
+            cfg = replace(cfg, redist_progress=bool(kwargs["redist_progress"]))
 
         cs = kwargs.get("constraint_spec")
         if cs is not None and not isinstance(cs, ConstraintSpec):

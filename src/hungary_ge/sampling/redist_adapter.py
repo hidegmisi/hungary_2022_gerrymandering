@@ -4,6 +4,7 @@ from __future__ import annotations
 
 import shutil
 import subprocess
+import sys
 import tempfile
 from collections.abc import Sequence
 from dataclasses import replace
@@ -56,22 +57,48 @@ def run_redist_smc(
     stderr_path = bundle_dir / "redist_stderr.log"
     cmd = [exe, str(script), str(bundle_dir)]
 
-    with (
-        stdout_path.open("w", encoding="utf-8") as out,
-        stderr_path.open("w", encoding="utf-8") as err,
-    ):
-        proc = subprocess.run(
-            cmd,
-            stdout=out,
-            stderr=err,
-            check=False,
-            shell=False,
-        )
+    if config.redist_progress:
+        with stdout_path.open("w", encoding="utf-8") as out_f:
+            proc = subprocess.Popen(
+                cmd,
+                stdout=out_f,
+                stderr=subprocess.PIPE,
+                text=True,
+                encoding="utf-8",
+                errors="replace",
+                shell=False,
+            )
+            try:
+                with stderr_path.open("w", encoding="utf-8") as err_f:
+                    if proc.stderr is not None:
+                        for line in proc.stderr:
+                            err_f.write(line)
+                            err_f.flush()
+                            sys.stderr.write(line)
+                            sys.stderr.flush()
+                code = int(proc.wait())
+            except BaseException:
+                if proc.poll() is None:
+                    proc.kill()
+                raise
+    else:
+        with (
+            stdout_path.open("w", encoding="utf-8") as out,
+            stderr_path.open("w", encoding="utf-8") as err,
+        ):
+            completed = subprocess.run(
+                cmd,
+                stdout=out,
+                stderr=err,
+                check=False,
+                shell=False,
+            )
+        code = int(completed.returncode)
 
     assign_path = bundle_dir / ASSIGNMENTS_CSV_NAME
-    assign_ok = assign_path.is_file() and proc.returncode == 0
+    assign_ok = assign_path.is_file() and code == 0
     return SamplerResult(
-        exit_code=proc.returncode,
+        exit_code=code,
         stdout_path=stdout_path,
         stderr_path=stderr_path,
         assignments_csv=assign_path if assign_ok else None,

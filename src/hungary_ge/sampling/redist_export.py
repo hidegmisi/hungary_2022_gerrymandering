@@ -125,6 +125,8 @@ def export_redist_bundle(
         "id_column": precinct_id_column,
         "total_pop_column": total_pop_column,
         "redist_extras": dict(config.redist_extras),
+        "smc_silent": not config.redist_progress,
+        "smc_verbose": config.redist_progress,
     }
     if versions_hint:
         run_payload["versions"] = versions_hint

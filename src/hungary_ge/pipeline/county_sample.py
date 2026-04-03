@@ -112,6 +112,7 @@ def run_county_redist_sample(
     rscript_path: Path | None,
     strict_county_connectivity: bool,
     log_prefix: str = "",
+    redist_progress: bool = True,
 ) -> PlanEnsemble:
     """Filter precincts to ``maz``, build graph, run ``redist`` SMC, save ensemble Parquet."""
     pq = precinct_parquet.resolve()
@@ -187,6 +188,7 @@ def run_county_redist_sample(
         pop_tol=pop_tol,
         compactness=compactness,
         rscript_path=rscript_path,
+        redist_progress=redist_progress,
     )
 
     meta = {
