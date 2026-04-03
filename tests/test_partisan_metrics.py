@@ -40,6 +40,42 @@ def test_district_totals_and_eg_toy() -> None:
     assert eg == pytest.approx(0.0, abs=1e-9)
 
 
+def test_efficiency_gap_sign_and_edge_cases() -> None:
+    # A packed blowout: A wastes more than B => positive EG in this implementation.
+    eg_a, wa_a, wb_a, t_a = efficiency_gap_two_party({1: (80.0, 20.0)})
+    assert t_a == 100.0
+    assert wa_a == pytest.approx(30.0)
+    assert wb_a == pytest.approx(20.0)
+    assert eg_a == pytest.approx(0.1)
+
+    # Swapping A/B vote totals should flip the sign.
+    eg_b, wa_b, wb_b, t_b = efficiency_gap_two_party({1: (20.0, 80.0)})
+    assert t_b == 100.0
+    assert wa_b == pytest.approx(20.0)
+    assert wb_b == pytest.approx(30.0)
+    assert eg_b == pytest.approx(-0.1)
+    assert eg_b == pytest.approx(-eg_a)
+
+    # Ties and zero-turnout districts are handled explicitly.
+    eg_tie, wa_tie, wb_tie, t_tie = efficiency_gap_two_party({1: (50.0, 50.0)})
+    assert t_tie == 100.0
+    assert wa_tie == pytest.approx(0.0)
+    assert wb_tie == pytest.approx(0.0)
+    assert eg_tie == pytest.approx(0.0)
+
+    eg_zero, wa_zero, wb_zero, t_zero = efficiency_gap_two_party(
+        {1: (0.0, 0.0), 2: (80.0, 20.0)}
+    )
+    assert t_zero == 100.0
+    assert wa_zero == pytest.approx(30.0)
+    assert wb_zero == pytest.approx(20.0)
+    assert eg_zero == pytest.approx(0.1)
+
+    # One-sided district vote should still stay in [-1, 1] and be finite.
+    eg_one_sided, _, _, _ = efficiency_gap_two_party({1: (100.0, 0.0)})
+    assert eg_one_sided == pytest.approx(0.5)
+
+
 def test_focal_vs_ensemble_toy() -> None:
     coding = PartisanPartyCoding(
         party_a_columns=("va",),
@@ -69,8 +105,45 @@ def test_focal_vs_ensemble_toy() -> None:
     rep = focal_vs_ensemble_metrics(focal, ens, votes, party_coding=coding)
     assert rep.metrics["seat_share_a"].focal_value == pytest.approx(0.5)
     assert rep.metrics["seat_share_a"].ensemble_mean == pytest.approx(1.0)
+    assert rep.metrics["efficiency_gap"].focal_value == pytest.approx(1.0 / 6.0)
+    assert rep.metrics["efficiency_gap"].ensemble_mean == pytest.approx(-1.0 / 6.0)
+    assert rep.metrics["efficiency_gap"].ensemble_p05 == pytest.approx(-1.0 / 6.0)
+    assert rep.metrics["efficiency_gap"].ensemble_p95 == pytest.approx(-1.0 / 6.0)
+    assert rep.metrics["efficiency_gap"].percentile_rank == pytest.approx(100.0)
     assert rep.coverage is not None
     assert rep.coverage.n_units == 3
+
+
+def test_loose_focal_can_change_eg_comparability() -> None:
+    coding = PartisanPartyCoding(
+        party_a_columns=("va",),
+        party_b_columns=("vb",),
+    )
+    votes = pd.DataFrame(
+        {
+            "precinct_id": ["p1", "p2"],
+            "va": [60.0, 0.0],
+            "vb": [40.0, 100.0],
+        }
+    )
+    # p2 has voting data but no focal district label.
+    focal = pd.DataFrame({"precinct_id": ["p1"], "oevk_id_full": ["X"]})
+    ens = PlanEnsemble.from_columns(("p1", "p2"), [[1, 1]])
+
+    rep = focal_vs_ensemble_metrics(
+        focal,
+        ens,
+        votes,
+        party_coding=coding,
+        strict_focal_for_voting_units=False,
+    )
+
+    assert rep.coverage is not None
+    assert rep.coverage.n_voting_units_missing_focal == 1
+    assert rep.extra["n_units_in_focal_aggregate"] == 1
+    # Draw metric uses both units, focal metric omits p2.
+    assert rep.metrics["efficiency_gap"].ensemble_mean == pytest.approx(0.1)
+    assert rep.metrics["efficiency_gap"].focal_value == pytest.approx(-0.3)
 
 
 def test_void_unit_zero_votes_excluded_from_focal_aggregate() -> None:
