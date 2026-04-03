@@ -10,9 +10,12 @@ import pytest
 from shapely.geometry import MultiPolygon, Polygon, box
 
 from hungary_ge.io.precinct_geometry_qa import (
+    GeometryQAOptions,
+    apply_qa_flags,
     compute_precinct_metrics,
     compute_precinct_overlaps,
     filter_szvk_rows,
+    summarize_qa,
 )
 from hungary_ge.problem import DEFAULT_PRECINCT_ID_COLUMN
 
@@ -223,3 +226,153 @@ def test_compute_precinct_overlaps_empty_gdf() -> None:
     agg, edges = compute_precinct_overlaps(gdf)
     assert len(agg) == 0
     assert len(edges) == 0
+
+
+def _synthetic_metrics_overlap(
+    *,
+    n: int,
+    areas: list[float],
+    partners: list[int] | None = None,
+) -> tuple[pd.DataFrame, pd.DataFrame]:
+    pids = [f"p{i:03d}" for i in range(n)]
+    if partners is None:
+        partners = [0] * n
+    metrics = pd.DataFrame(
+        {
+            "precinct_id": pids,
+            "area_m2": areas,
+            "perimeter_m": [40.0] * n,
+            "polsby_popper": [0.7] * n,
+            "n_polygon_parts": [1] * n,
+            "n_holes": [0] * n,
+        }
+    )
+    overlap = pd.DataFrame(
+        {
+            "precinct_id": pids,
+            "n_overlap_partners": partners,
+            "sum_overlap_area_m2": [0.0] * n,
+            "max_overlap_area_m2": [0.0] * n,
+            "max_overlap_ratio": [0.0] * n,
+        }
+    )
+    return metrics, overlap
+
+
+def test_apply_qa_flags_tukey_log_area_outlier() -> None:
+    n = 22
+    # Need spread in area so county IQR > 0; Tukey is skipped when IQR == 0.
+    areas = [80.0 + float((i * 7) % 50) for i in range(n - 1)] + [1e12]
+    maz = ["01"] * n
+    metrics, overlap = _synthetic_metrics_overlap(n=n, areas=areas)
+    flags = apply_qa_flags(
+        metrics,
+        overlap,
+        maz=maz,
+        options=GeometryQAOptions(min_county_n_for_tukey=20),
+    )
+    last = flags.loc[flags["precinct_id"] == "p021", "qa_severity"].iloc[0]
+    assert last in ("warn", "severe")
+    assert (
+        "log_area_tukey"
+        in flags.loc[flags["precinct_id"] == "p021", "qa_reasons"].iloc[0]
+    )
+
+
+def test_apply_qa_flags_overlap_partner_thresholds() -> None:
+    n = 3
+    metrics, overlap = _synthetic_metrics_overlap(
+        n=n,
+        areas=[100.0, 100.0, 100.0],
+        partners=[0, 2, 5],
+    )
+    flags = apply_qa_flags(
+        metrics,
+        overlap,
+        maz=["01", "01", "01"],
+        options=GeometryQAOptions(
+            warn_if_overlap_partners_ge=2,
+            severe_if_overlap_partners_ge=4,
+        ),
+    )
+    assert flags.loc[flags["precinct_id"] == "p000", "qa_severity"].iloc[0] == "ok"
+    assert flags.loc[flags["precinct_id"] == "p001", "qa_severity"].iloc[0] == "warn"
+    assert flags.loc[flags["precinct_id"] == "p002", "qa_severity"].iloc[0] == "severe"
+
+
+def test_apply_qa_flags_polsby_warn() -> None:
+    n = 2
+    metrics, overlap = _synthetic_metrics_overlap(
+        n=n,
+        areas=[100.0, 100.0],
+    )
+    metrics.loc[0, "polsby_popper"] = 0.001
+    flags = apply_qa_flags(
+        metrics,
+        overlap,
+        maz=["01", "01"],
+        options=GeometryQAOptions(warn_polsby_below=0.01),
+    )
+    r0 = flags.loc[flags["precinct_id"] == "p000", "qa_reasons"].iloc[0]
+    assert "polsby_popper" in r0
+    assert flags.loc[flags["precinct_id"] == "p001", "qa_severity"].iloc[0] == "ok"
+
+
+def test_apply_qa_flags_maz_length_mismatch() -> None:
+    metrics, overlap = _synthetic_metrics_overlap(n=2, areas=[1.0, 1.0])
+    with pytest.raises(ValueError, match="maz length"):
+        apply_qa_flags(metrics, overlap, maz=["01"])
+
+
+def test_apply_qa_flags_empty() -> None:
+    metrics = pd.DataFrame(
+        {
+            "precinct_id": pd.Series(dtype=str),
+            "area_m2": pd.Series(dtype=float),
+            "perimeter_m": pd.Series(dtype=float),
+            "polsby_popper": pd.Series(dtype=float),
+            "n_polygon_parts": pd.Series(dtype=int),
+            "n_holes": pd.Series(dtype=int),
+        }
+    )
+    overlap = pd.DataFrame(
+        {
+            "precinct_id": pd.Series(dtype=str),
+            "n_overlap_partners": pd.Series(dtype="int64"),
+            "sum_overlap_area_m2": pd.Series(dtype=float),
+            "max_overlap_area_m2": pd.Series(dtype=float),
+            "max_overlap_ratio": pd.Series(dtype=float),
+        }
+    )
+    out = apply_qa_flags(metrics, overlap, maz=[])
+    assert len(out) == 0
+    assert "qa_severity" in out.columns
+
+
+def test_summarize_qa_counts_and_hotspots() -> None:
+    metrics, overlap = _synthetic_metrics_overlap(
+        n=3,
+        areas=[100.0, 100.0, 100.0],
+        partners=[0, 1, 3],
+    )
+    flags = apply_qa_flags(
+        metrics,
+        overlap,
+        maz=["01", "01", "01"],
+        options=GeometryQAOptions(
+            warn_if_overlap_partners_ge=1,
+            severe_if_overlap_partners_ge=3,
+        ),
+    )
+    edges = pd.DataFrame(
+        {
+            "precinct_id_a": ["p000", "p001"],
+            "precinct_id_b": ["p001", "p002"],
+            "intersection_area_m2": [1.0, 1.0],
+        }
+    )
+    s = summarize_qa(flags, edges_df=edges, top_n_hotspots=2)
+    assert s["n_severe"] >= 1
+    assert s["n_material_overlap_pairs"] == 2
+    assert s["n_precincts_with_overlap"] == 2
+    assert len(s["top_overlap_hotspots"]) <= 2

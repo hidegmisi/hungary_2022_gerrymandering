@@ -44,9 +44,12 @@ from hungary_ge.io.precinct_etl import (
     raw_precinct_list_total,
 )
 from hungary_ge.io.precinct_geometry_qa import (
+    GeometryQAOptions,
+    apply_qa_flags,
     compute_precinct_metrics,
     compute_precinct_overlaps,
     filter_szvk_rows,
+    summarize_qa,
 )
 from hungary_ge.io.szavkor_parse import (
     SzavkorRecord,
@@ -59,6 +62,7 @@ __all__ = [
     "GapBuildOptions",
     "GapBuildStats",
     "GapShellSource",
+    "GeometryQAOptions",
     "HexVoidOptions",
     "ListPartyMap",
     "assert_focal_assignments_valid",
@@ -73,9 +77,11 @@ __all__ = [
     "load_votes_table",
     "PrecinctBuildStats",
     "SzavkorRecord",
+    "apply_qa_flags",
     "compute_precinct_metrics",
     "compute_precinct_overlaps",
     "filter_szvk_rows",
+    "summarize_qa",
     "build_gap_features_all_counties",
     "build_gap_features_for_maz",
     "build_precinct_gdf",

@@ -1,10 +1,11 @@
-"""Precinct geometry QA: scalar metrics (slice 1) and per-county overlaps (slice 2)."""
+"""Precinct geometry QA: metrics, overlaps, and QA flags (slices 1–3)."""
 
 from __future__ import annotations
 
 import math
 from collections import defaultdict
-from collections.abc import Iterator
+from collections.abc import Iterator, Sequence
+from dataclasses import dataclass
 from typing import Any
 
 import numpy as np
@@ -329,3 +330,212 @@ def compute_precinct_overlaps(
         edges_df = _empty_overlap_edges()
 
     return agg_df, edges_df
+
+
+@dataclass(frozen=True)
+class GeometryQAOptions:
+    """Thresholds for :func:`apply_qa_flags`.
+
+    Tukey fences use ``log(area_m2)`` **per normalized county** when the county
+    has at least ``min_county_n_for_tukey`` finite log-area values; otherwise
+    area-based Tukey flags are skipped for that county.
+
+    Overlap partner rules are optional: ``None`` disables that threshold.
+    """
+
+    min_county_n_for_tukey: int = 20
+    tukey_k_warn: float = 1.5
+    tukey_k_severe: float = 3.0
+    warn_if_overlap_partners_ge: int | None = None
+    severe_if_overlap_partners_ge: int | None = None
+    warn_polsby_below: float | None = None
+
+
+def apply_qa_flags(
+    metrics_df: pd.DataFrame,
+    overlap_df: pd.DataFrame,
+    *,
+    maz: pd.Series | Sequence[str],
+    options: GeometryQAOptions | None = None,
+) -> pd.DataFrame:
+    """Merge metrics + overlap rows and add ``qa_severity`` / ``qa_reasons``.
+
+    *maz* must align row-for-row with *metrics_df* (same length, same order).
+
+    Severity is the worst of contributing rules: ``ok`` < ``warn`` < ``severe``.
+    ``qa_reasons`` is a ``"; "``-joined string for Parquet-friendly storage.
+    """
+    opts = options if options is not None else GeometryQAOptions()
+    if len(metrics_df) == 0:
+        empty = metrics_df.merge(
+            overlap_df,
+            on="precinct_id",
+            how="left",
+            validate="one_to_one",
+        )
+        empty["qa_severity"] = pd.Series(dtype=str)
+        empty["qa_reasons"] = pd.Series(dtype=str)
+        return empty
+
+    if "precinct_id" not in metrics_df.columns:
+        msg = "metrics_df must contain precinct_id"
+        raise ValueError(msg)
+    if "precinct_id" not in overlap_df.columns:
+        msg = "overlap_df must contain precinct_id"
+        raise ValueError(msg)
+
+    mz = pd.Series(maz, dtype=str).reset_index(drop=True)
+    if len(mz) != len(metrics_df):
+        msg = f"maz length {len(mz)} != metrics_df length {len(metrics_df)}"
+        raise ValueError(msg)
+
+    work = metrics_df.merge(
+        overlap_df,
+        on="precinct_id",
+        how="left",
+        validate="one_to_one",
+    ).reset_index(drop=True)
+    mz = mz.reset_index(drop=True)
+    if len(work) != len(metrics_df):
+        msg = "metrics_df precinct_id values are not unique"
+        raise ValueError(msg)
+
+    for col in (
+        "n_overlap_partners",
+        "sum_overlap_area_m2",
+        "max_overlap_area_m2",
+        "max_overlap_ratio",
+    ):
+        if col in work.columns:
+            work[col] = work[col].fillna(0.0)
+    if "n_overlap_partners" in work.columns:
+        work["n_overlap_partners"] = work["n_overlap_partners"].astype("int64")
+
+    work["_maz_n"] = mz.map(_normalize_maz)
+    with np.errstate(divide="ignore", invalid="ignore"):
+        work["_log_area"] = np.where(
+            work["area_m2"].to_numpy(dtype="float64") > 0.0,
+            np.log(work["area_m2"].to_numpy(dtype="float64")),
+            np.nan,
+        )
+
+    n = len(work)
+    sev = np.zeros(n, dtype=np.int8)
+    reasons: list[list[str]] = [[] for _ in range(n)]
+
+    def bump(i: int, rank: int, code: str) -> None:
+        sev[i] = max(int(sev[i]), int(rank))
+        reasons[i].append(code)
+
+    # --- overlap partner counts ---
+    nop = work["n_overlap_partners"].to_numpy(dtype=np.int64)
+    if opts.severe_if_overlap_partners_ge is not None:
+        thr = int(opts.severe_if_overlap_partners_ge)
+        for i in np.flatnonzero(nop >= thr):
+            bump(int(i), 2, f"overlap_partners>={thr}")
+    if opts.warn_if_overlap_partners_ge is not None:
+        thr_w = int(opts.warn_if_overlap_partners_ge)
+        thr_s = (
+            int(opts.severe_if_overlap_partners_ge)
+            if opts.severe_if_overlap_partners_ge is not None
+            else None
+        )
+        for i in range(n):
+            if nop[i] < thr_w:
+                continue
+            if thr_s is not None and nop[i] >= thr_s:
+                continue
+            bump(i, 1, f"overlap_partners>={thr_w}")
+
+    # --- Tukey on log(area) per county ---
+    for _key, grp in work.groupby("_maz_n", sort=False):
+        if len(grp) < opts.min_county_n_for_tukey:
+            continue
+        la = grp["_log_area"]
+        valid = la.notna()
+        if int(valid.sum()) < opts.min_county_n_for_tukey:
+            continue
+        vals = la[valid].astype("float64")
+        q1 = float(vals.quantile(0.25))
+        q3 = float(vals.quantile(0.75))
+        iqr = q3 - q1
+        if not math.isfinite(iqr) or iqr <= 0.0:
+            continue
+        lo_far = q1 - opts.tukey_k_severe * iqr
+        hi_far = q3 + opts.tukey_k_severe * iqr
+        lo_mild = q1 - opts.tukey_k_warn * iqr
+        hi_mild = q3 + opts.tukey_k_warn * iqr
+        for row_i in grp.index:
+            v = work.at[int(row_i), "_log_area"]
+            if not isinstance(v, (float, np.floating)) or not math.isfinite(float(v)):
+                continue
+            vf = float(v)
+            if vf < lo_far or vf > hi_far:
+                bump(int(row_i), 2, "log_area_tukey_far")
+            elif vf < lo_mild or vf > hi_mild:
+                bump(int(row_i), 1, "log_area_tukey_mild")
+
+    # --- Polsby–Popper lower bound (optional) ---
+    if opts.warn_polsby_below is not None:
+        thr_p = float(opts.warn_polsby_below)
+        pp = work["polsby_popper"].to_numpy(dtype="float64")
+        for i in range(n):
+            p = pp[i]
+            if math.isfinite(p) and p < thr_p:
+                bump(i, 1, f"polsby_popper<{thr_p}")
+
+    inv = {0: "ok", 1: "warn", 2: "severe"}
+    work["qa_severity"] = [inv[int(x)] for x in sev]
+    work["qa_reasons"] = ["; ".join(r) if r else "" for r in reasons]
+    return work.drop(columns=["_maz_n", "_log_area"])
+
+
+def summarize_qa(
+    flagged_df: pd.DataFrame,
+    *,
+    edges_df: pd.DataFrame | None = None,
+    top_n_hotspots: int = 10,
+) -> dict[str, Any]:
+    """JSON-serializable summary for manifests or CLI (counts + overlap hotspots)."""
+    out: dict[str, Any] = {}
+    if len(flagged_df) == 0:
+        out["n_ok"] = 0
+        out["n_warn"] = 0
+        out["n_severe"] = 0
+        out["n_precincts_with_overlap"] = 0
+        out["n_material_overlap_pairs"] = 0 if edges_df is None else int(len(edges_df))
+        out["top_overlap_hotspots"] = []
+        return out
+
+    if "qa_severity" not in flagged_df.columns:
+        msg = "flagged_df must contain qa_severity"
+        raise ValueError(msg)
+
+    for sev in ("ok", "warn", "severe"):
+        out[f"n_{sev}"] = int((flagged_df["qa_severity"] == sev).sum())
+
+    if "n_overlap_partners" in flagged_df.columns:
+        out["n_precincts_with_overlap"] = int(
+            (flagged_df["n_overlap_partners"].to_numpy() > 0).sum(),
+        )
+    else:
+        out["n_precincts_with_overlap"] = None
+
+    if edges_df is not None and len(edges_df) > 0:
+        out["n_material_overlap_pairs"] = int(len(edges_df))
+    elif edges_df is not None:
+        out["n_material_overlap_pairs"] = 0
+    else:
+        out["n_material_overlap_pairs"] = None
+
+    if (
+        "n_overlap_partners" in flagged_df.columns
+        and "precinct_id" in flagged_df.columns
+    ):
+        cols = ["precinct_id", "n_overlap_partners"]
+        hot = flagged_df.nlargest(int(top_n_hotspots), "n_overlap_partners")[cols]
+        out["top_overlap_hotspots"] = hot.to_dict(orient="records")
+    else:
+        out["top_overlap_hotspots"] = []
+
+    return out
