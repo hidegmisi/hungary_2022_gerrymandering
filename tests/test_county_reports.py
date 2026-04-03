@@ -108,6 +108,12 @@ def test_run_county_reports_writes_json(tmp_path: Path) -> None:
     part = json.loads(ppath.read_text(encoding="utf-8"))
     assert part["extra"]["county_maz"] == "01"
     assert "coverage" in part
+    eg = part["metrics"]["efficiency_gap"]
+    assert eg["focal_value"] == pytest.approx(0.0)
+    assert eg["ensemble_mean"] == pytest.approx(0.0)
+    assert eg["ensemble_p05"] == pytest.approx(0.0)
+    assert eg["ensemble_p95"] == pytest.approx(0.0)
+    assert eg["percentile_rank"] == pytest.approx(100.0)
 
 
 def test_run_county_reports_raises_without_ensemble(tmp_path: Path) -> None:
