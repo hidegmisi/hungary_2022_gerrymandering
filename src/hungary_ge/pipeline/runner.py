@@ -478,6 +478,46 @@ def main(argv: list[str] | None = None) -> int:
         help="Pass --no-geometry-repair to build_precinct_layer.py",
     )
     parser.add_argument(
+        "--etl-hub-drop-enable",
+        action="store_true",
+        help="Pass --hub-drop-enable to build_precinct_layer.py",
+    )
+    parser.add_argument(
+        "--etl-hub-drop-hard-partners",
+        type=int,
+        default=100,
+        help="Pass --hub-drop-hard-partners (default 100; 0 disables hard tier)",
+    )
+    parser.add_argument(
+        "--etl-hub-drop-soft-partners",
+        type=int,
+        default=30,
+        help="Pass --hub-drop-soft-partners (default 30; 0 disables soft tier)",
+    )
+    parser.add_argument(
+        "--etl-hub-drop-mass-ratio",
+        type=float,
+        default=1.5,
+        help="Pass --hub-drop-mass-ratio to build_precinct_layer.py",
+    )
+    parser.add_argument(
+        "--etl-hub-drop-min-overlap-m2",
+        type=float,
+        default=5.0,
+        help="Pass --hub-drop-min-overlap-m2 to build_precinct_layer.py",
+    )
+    parser.add_argument(
+        "--etl-hub-drop-max-rows",
+        type=int,
+        default=200,
+        help="Pass --hub-drop-max-rows (0 = no limit)",
+    )
+    parser.add_argument(
+        "--etl-hub-drop-allow-exceed-max",
+        action="store_true",
+        help="Pass --hub-drop-allow-exceed-max to build_precinct_layer.py",
+    )
+    parser.add_argument(
         "--graph-contiguity",
         choices=("queen", "rook"),
         default="queen",
@@ -772,6 +812,24 @@ def main(argv: list[str] | None = None) -> int:
                 extra.extend(["--out-parquet", str(out_pq)])
             if args.etl_no_geometry_repair:
                 extra.append("--no-geometry-repair")
+            if args.etl_hub_drop_enable:
+                extra.append("--hub-drop-enable")
+                extra.extend(
+                    [
+                        "--hub-drop-hard-partners",
+                        str(args.etl_hub_drop_hard_partners),
+                        "--hub-drop-soft-partners",
+                        str(args.etl_hub_drop_soft_partners),
+                        "--hub-drop-mass-ratio",
+                        str(args.etl_hub_drop_mass_ratio),
+                        "--hub-drop-min-overlap-m2",
+                        str(args.etl_hub_drop_min_overlap_m2),
+                        "--hub-drop-max-rows",
+                        str(args.etl_hub_drop_max_rows),
+                    ],
+                )
+                if args.etl_hub_drop_allow_exceed_max:
+                    extra.append("--hub-drop-allow-exceed-max")
             prefix = f"[run {run_id}] " if args.mode == "county" and run_id else ""
             print(f"{prefix}stage etl: build_precinct_layer.py")  # noqa: T201
             code = _run_script(repo_root, "build_precinct_layer.py", extra)

@@ -44,6 +44,12 @@ from hungary_ge.io.precinct_etl import (
     build_precinct_gdf,
     raw_precinct_list_total,
 )
+from hungary_ge.io.precinct_geometry_hub_drop import (
+    OverlapHubDropOptions,
+    OverlapHubDropStats,
+    drop_overlap_hub_szvk,
+    hub_drop_masks_for_precinct_table,
+)
 from hungary_ge.io.precinct_geometry_qa import (
     GeometryQAOptions,
     apply_qa_flags,
@@ -70,12 +76,16 @@ __all__ = [
     "GeometryQAOptions",
     "HexVoidOptions",
     "ListPartyMap",
+    "OverlapHubDropOptions",
+    "OverlapHubDropStats",
     "assert_focal_assignments_valid",
     "build_electoral_tables",
     "circumradius_from_hex_area",
     "default_list_party_map_path",
+    "drop_overlap_hub_szvk",
     "electoral_vote_columns",
     "hex_area_from_circumradius",
+    "hub_drop_masks_for_precinct_table",
     "join_electoral_to_gdf",
     "load_focal_assignments",
     "load_list_party_map",

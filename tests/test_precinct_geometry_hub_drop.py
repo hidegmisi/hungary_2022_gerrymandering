@@ -1,4 +1,4 @@
-"""Tests for overlap-hub drop (slice 1: library only)."""
+"""Tests for overlap-hub drop (library, ETL wiring via build script, pipeline flags)."""
 
 from __future__ import annotations
 
@@ -7,7 +7,8 @@ import pandas as pd
 import pytest
 from shapely.geometry import box
 
-from hungary_ge.io.precinct_geometry_hub_drop import (
+import hungary_ge.io.precinct_geometry_hub_drop as hub_mod
+from hungary_ge.io import (
     OverlapHubDropOptions,
     OverlapHubDropStats,
     drop_overlap_hub_szvk,
@@ -219,3 +220,12 @@ def test_manifest_dict_truncates_detail() -> None:
 def test_options_invalid_mass_ratio() -> None:
     with pytest.raises(ValueError, match="mass_ratio"):
         OverlapHubDropOptions(mass_ratio=0.0)
+
+
+def test_hub_drop_reexports_match_submodule() -> None:
+    assert hub_mod.OverlapHubDropOptions is OverlapHubDropOptions
+    assert hub_mod.OverlapHubDropStats is OverlapHubDropStats
+    assert hub_mod.drop_overlap_hub_szvk is drop_overlap_hub_szvk
+    assert (
+        hub_mod.hub_drop_masks_for_precinct_table is hub_drop_masks_for_precinct_table
+    )
