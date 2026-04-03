@@ -1,11 +1,25 @@
 {
   "version": 1,
   "election_year": 2022,
-  "description": "Editable stub: map szavkor_topo listVotes string keys to stable vote column names (votes_*). Extend with label_hu from official list metadata when needed. Unmapped keys log warnings unless ETL strict_unknown_lists=True.",
+  "description": "Maps szavkor_topo listVotes registry keys to stable Parquet columns. Labels match NVI 2022 országos listák (party + nemzetiségi); keyed ids are from the topo JSON API, not ballot sorszám.",
   "lists": {
+    "937": {"column": "votes_list_937", "label_hu": "ORÖ (országos roma önkormányzat)"},
+    "938": {"column": "votes_list_938", "label_hu": "SZOÖ"},
+    "939": {"column": "votes_list_939", "label_hu": "Bolgár országos önkormányzat"},
+    "940": {"column": "votes_list_940", "label_hu": "OHÖ"},
+    "941": {"column": "votes_list_941", "label_hu": "OSZÖ"},
     "942": {"column": "votes_list_942", "label_hu": "MI HAZÁNK"},
+    "943": {"column": "votes_list_943", "label_hu": "Magyarországi görögök országos önkormányzata"},
+    "944": {"column": "votes_list_944", "label_hu": "UOÖ"},
+    "945": {"column": "votes_list_945", "label_hu": "OÖÖ"},
+    "946": {"column": "votes_list_946", "label_hu": "MROÖ"},
+    "947": {"column": "votes_list_947", "label_hu": "MNOÖ"},
+    "948": {"column": "votes_list_948", "label_hu": "OLÖ"},
+    "949": {"column": "votes_list_949", "label_hu": "Országos szlovák önkormányzat"},
     "950": {"column": "votes_list_950", "label_hu": "DK-JOBBIK-MOMENTUM-MSZP-LMP-PÁRBESZÉD"},
     "951": {"column": "votes_list_951", "label_hu": "MKKP"},
-    "952": {"column": "votes_list_952", "label_hu": "FIDESZ-KDNP"}
+    "952": {"column": "votes_list_952", "label_hu": "FIDESZ-KDNP"},
+    "954": {"column": "votes_list_954", "label_hu": "MEMO"},
+    "955": {"column": "votes_list_955", "label_hu": "NORMÁLIS ÉLET PÁRTJA"}
   }
 }
