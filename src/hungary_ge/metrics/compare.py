@@ -8,7 +8,12 @@ import numpy as np
 import pandas as pd
 
 from hungary_ge.ensemble.plan_ensemble import PlanEnsemble
+from hungary_ge.metrics.balance import apply_two_bloc_vote_balance
 from hungary_ge.metrics.party_coding import PartisanPartyCoding
+from hungary_ge.metrics.policy import (
+    DEFAULT_METRIC_COMPUTATION_POLICY,
+    MetricComputationPolicy,
+)
 from hungary_ge.metrics.report import (
     PARTISAN_COMPARISON_SCHEMA_V1,
     CoverageBlock,
@@ -104,13 +109,28 @@ def metrics_for_assignment(
     district_per_unit: Sequence[Hashable],
     votes_a: np.ndarray,
     votes_b: np.ndarray,
+    *,
+    metric_policy: MetricComputationPolicy | None = None,
+    balance_already_applied: bool = False,
 ) -> dict[str, float]:
-    """Scalar metrics for one partition (one draw or focal)."""
-    tot = district_two_party_totals(district_per_unit, votes_a, votes_b)
-    va, vb, t_nat = national_two_party_shares(tot)
-    vshare = (va / t_nat) if t_nat > 0 else 0.0
+    """Scalar metrics for one partition (one draw or focal).
+
+    Unless ``balance_already_applied=True``, applies ``metric_policy`` statewide
+    balancing (default: symmetric scale) before aggregating by district.
+    """
+    policy = metric_policy or DEFAULT_METRIC_COMPUTATION_POLICY
+    va = np.asarray(votes_a, dtype=np.float64)
+    vb = np.asarray(votes_b, dtype=np.float64)
+    if not balance_already_applied:
+        va, vb, _meta = apply_two_bloc_vote_balance(va, vb, policy)
+    tot = district_two_party_totals(district_per_unit, va, vb)
+    va_nat, vb_nat, t_nat = national_two_party_shares(tot)
+    vshare = (va_nat / t_nat) if t_nat > 0 else 0.0
     sshare = seat_share_a_rate(tot)
-    eg, _wa, _wb, _t = efficiency_gap_two_party(tot)
+    if t_nat <= policy.safety.eps_total:
+        eg = 0.0
+    else:
+        eg, _wa, _wb, _t = efficiency_gap_two_party(tot)
     mmd = mean_median_district_a_share(tot)
     out = {
         "vote_share_a": float(vshare),
@@ -133,6 +153,7 @@ def focal_vs_ensemble_metrics(
     strict_focal_for_voting_units: bool = True,
     precinct_col: str = DEFAULT_PRECINCT_ID_COLUMN,
     focal_district_col: str = "oevk_id_full",
+    metric_policy: MetricComputationPolicy | None = None,
 ) -> PartisanComparisonReport:
     """Compare enacted (focal) districting to ensemble draws on two-bloc metrics.
 
@@ -144,10 +165,14 @@ def focal_vs_ensemble_metrics(
         party_coding: Which columns sum into bloc A vs B.
         strict_focal_for_voting_units: If True, raise when any unit with positive
             two-party votes lacks a focal district label.
+        metric_policy: Balancing and numerical guards for vote inputs (default:
+            statewide symmetric balance on, small-bloc totals raise).
     """
     _votes_precinct_column_ok(votes, precinct_col)
+    policy = metric_policy or DEFAULT_METRIC_COMPUTATION_POLICY
     uid = ensemble.unit_ids
     va, vb = _aligned_vote_arrays(uid, votes, party_coding, precinct_col=precinct_col)
+    va_b, vb_b, bal_meta = apply_two_bloc_vote_balance(va, vb, policy)
     focal_lbl, n_miss_focal = _focal_labels_for_units(
         uid, focal, precinct_col=precinct_col, focal_district_col=focal_district_col
     )
@@ -183,15 +208,27 @@ def focal_vs_ensemble_metrics(
     }
     for j in range(ensemble.n_draws):
         dist_col = [ensemble.assignments[i][j] for i in range(ensemble.n_units)]
-        m = metrics_for_assignment(dist_col, va, vb)
+        m = metrics_for_assignment(
+            dist_col,
+            va_b,
+            vb_b,
+            metric_policy=policy,
+            balance_already_applied=True,
+        )
         for k in draw_metrics:
             draw_metrics[k].append(m[k])
 
     focal_idx = [i for i in range(ensemble.n_units) if focal_lbl[i] is not None]
     focal_dist = [focal_lbl[i] for i in focal_idx]
-    focal_va = va[focal_idx]
-    focal_vb = vb[focal_idx]
-    focal_m = metrics_for_assignment(focal_dist, focal_va, focal_vb)
+    focal_va = va_b[focal_idx]
+    focal_vb = vb_b[focal_idx]
+    focal_m = metrics_for_assignment(
+        focal_dist,
+        focal_va,
+        focal_vb,
+        metric_policy=policy,
+        balance_already_applied=True,
+    )
 
     results: dict[str, PartisanMetricResult] = {}
     for name, draws in draw_metrics.items():
@@ -227,5 +264,6 @@ def focal_vs_ensemble_metrics(
             "precinct_id_column": precinct_col,
             "focal_district_column": focal_district_col,
             "n_units_in_focal_aggregate": len(focal_idx),
+            "vote_balance": bal_meta,
         },
     )

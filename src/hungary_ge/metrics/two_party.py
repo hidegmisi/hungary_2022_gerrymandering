@@ -1,14 +1,25 @@
 """Two-party district aggregates, SMD seats, efficiency gap (Slice 9).
 
-Tie-breaking: if ``V_A == V_B`` in a district, each party is credited **0.5** seats
-(symmetric wasted-vote accounting uses the same ``T/2`` threshold).
+Seat rule: plurality in each district; ties credit **0.5** seats each.
+
+Efficiency gap uses **winner surplus** on bloc totals: the winner wastes votes equal
+to the margin ``|A-B|``; the loser wastes all of its votes. Normalized by total
+two-party turnout across districts with positive turnout.
 """
 
 from __future__ import annotations
 
+import math
 from collections.abc import Hashable, Sequence
 
 import numpy as np
+
+
+def _district_tie(a: float, b: float, *, turnout: float) -> bool:
+    """Treat near-equal bloc totals as a tie (stabilizes symmetric balance + float error)."""
+    if turnout <= 0.0:
+        return True
+    return math.isclose(a, b, rel_tol=1e-12, abs_tol=max(1e-9, 1e-12 * turnout))
 
 
 def district_two_party_totals(
@@ -49,12 +60,12 @@ def seat_share_a_smd(
         if t <= 0.0:
             continue
         n_eff += 1
-        if a > b:
-            seats_a += 1.0
-        elif b > a:
-            seats_a += 0.0
-        else:
+        if _district_tie(a, b, turnout=t):
             seats_a += 0.5
+        elif a > b:
+            seats_a += 1.0
+        else:
+            seats_a += 0.0
     return seats_a, float(n_eff)
 
 
@@ -83,12 +94,14 @@ def national_two_party_shares(
 def efficiency_gap_two_party(
     totals_by_district: dict[Hashable, tuple[float, float]],
 ) -> tuple[float, float, float, float]:
-    """Stephanopoulos–McGhee-style efficiency gap on district totals.
+    """Efficiency-style gap from winner-surplus wasted votes on district totals.
 
     Returns ``(eg, wasted_a, wasted_b, total_two_party)`` where
     ``eg = (wasted_a - wasted_b) / total_two_party`` when ``total_two_party > 0``.
 
-    Wasted A in district: if ``A > B``, ``A - T/2``; if ``B > A``, ``A``; if tie, ``A - T/2`` (=0 when ``A==B``).
+    Per district with positive turnout: if ``A > B``, wasted A is ``A - B`` and wasted B
+    is ``B``; if ``B > A``, wasted A is ``A`` and wasted B is ``B - A``; if ``A == B``,
+    both wasted totals are zero for that district.
     """
     w_a = 0.0
     w_b = 0.0
@@ -98,16 +111,14 @@ def efficiency_gap_two_party(
         if t <= 0.0:
             continue
         tot += t
-        half = 0.5 * t
-        if a > b:
-            w_a += a - half
+        if _district_tie(a, b, turnout=t):
+            pass
+        elif a > b:
+            w_a += a - b
             w_b += b
-        elif b > a:
-            w_a += a
-            w_b += b - half
         else:
-            w_a += a - half
-            w_b += b - half
+            w_a += a
+            w_b += b - a
     if tot <= 0.0:
         return 0.0, w_a, w_b, tot
     return (w_a - w_b) / tot, w_a, w_b, tot

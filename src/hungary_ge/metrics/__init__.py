@@ -12,6 +12,7 @@ from typing import Any
 import pandas as pd
 
 from hungary_ge.ensemble.plan_ensemble import PlanEnsemble
+from hungary_ge.metrics.balance import apply_two_bloc_vote_balance
 from hungary_ge.metrics.compare import focal_vs_ensemble_metrics
 from hungary_ge.metrics.party_coding import (
     PARTISAN_PARTY_CODING_SCHEMA_V1,
@@ -64,6 +65,7 @@ def partisan_metrics(
 
 
 __all__ = [
+    "apply_two_bloc_vote_balance",
     "DEFAULT_METRIC_COMPUTATION_POLICY",
     "BalancePolicy",
     "MetricComputationPolicy",

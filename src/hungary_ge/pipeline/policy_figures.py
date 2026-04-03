@@ -21,12 +21,14 @@ from hungary_ge.config import (
 from hungary_ge.ensemble.persistence import load_plan_ensemble
 from hungary_ge.ensemble.plan_ensemble import PlanEnsemble
 from hungary_ge.io.electoral_etl import load_focal_assignments, load_votes_table
+from hungary_ge.metrics.balance import apply_two_bloc_vote_balance
 from hungary_ge.metrics.compare import metrics_for_assignment
 from hungary_ge.metrics.party_coding import (
     PartisanPartyCoding,
     default_partisan_party_coding_path,
     load_partisan_party_coding,
 )
+from hungary_ge.metrics.policy import DEFAULT_METRIC_COMPUTATION_POLICY
 from hungary_ge.pipeline.progress import county_progress_disabled
 from hungary_ge.problem import DEFAULT_PRECINCT_ID_COLUMN
 
@@ -356,6 +358,9 @@ def _draw_series_for_metrics(
         if name not in _METRICS_FOR_PLOTS:
             raise ValueError(f"unsupported metric for draw series: {name!r}")
 
+    policy = DEFAULT_METRIC_COMPUTATION_POLICY
+    va_b, vb_b, _bal = apply_two_bloc_vote_balance(va, vb, policy)
+
     disable_draws = county_progress_disabled(no_progress=no_progress)
     desc = draw_pbar_desc or f"{maz} " + "+".join(metric_names)
     draw_cols: dict[str, list[float]] = {n: [] for n in metric_names}
@@ -368,15 +373,27 @@ def _draw_series_for_metrics(
         disable=disable_draws,
     ):
         assign = [ensemble.assignments[i][j] for i in range(ensemble.n_units)]
-        met = metrics_for_assignment(assign, va, vb)
+        met = metrics_for_assignment(
+            assign,
+            va_b,
+            vb_b,
+            metric_policy=policy,
+            balance_already_applied=True,
+        )
         for name in metric_names:
             draw_cols[name].append(float(met[name]))
 
     idx = [i for i, lab in enumerate(focal_lbl) if lab is not None]
     focal_assign = [focal_lbl[i] for i in idx]
-    focal_va = va[idx]
-    focal_vb = vb[idx]
-    focal_met = metrics_for_assignment(focal_assign, focal_va, focal_vb)
+    focal_va = va_b[idx]
+    focal_vb = vb_b[idx]
+    focal_met = metrics_for_assignment(
+        focal_assign,
+        focal_va,
+        focal_vb,
+        metric_policy=policy,
+        balance_already_applied=True,
+    )
 
     out: dict[str, CountyDrawSeries] = {}
     for name in metric_names:

@@ -50,11 +50,13 @@ from hungary_ge.io import (
     load_processed_geoparquet,
     load_votes_table,
 )
+from hungary_ge.metrics.balance import apply_two_bloc_vote_balance
 from hungary_ge.metrics.compare import metrics_for_assignment
 from hungary_ge.metrics.party_coding import (
     default_partisan_party_coding_path,
     load_partisan_party_coding,
 )
+from hungary_ge.metrics.policy import DEFAULT_METRIC_COMPUTATION_POLICY
 from hungary_ge.pipeline.county_allocation import normalize_maz
 from hungary_ge.pipeline.county_sample import county_ndists_by_maz
 from hungary_ge.problem import (
@@ -895,7 +897,11 @@ def main() -> int:
                     party_a_columns=shared_coding.party_a_columns,
                     party_b_columns=shared_coding.party_b_columns,
                 )
-                va, vb = va_t, vb_t
+                va, vb, _vb_meta = apply_two_bloc_vote_balance(
+                    va_t,
+                    vb_t,
+                    DEFAULT_METRIC_COMPUTATION_POLICY,
+                )
                 county_partisan = _load_county_partisan_report(
                     paths=paths,
                     run_id=args.run_id,
@@ -919,6 +925,8 @@ def main() -> int:
                             focal_dist,
                             va[np.array(idx, dtype=int)],
                             vb[np.array(idx, dtype=int)],
+                            metric_policy=DEFAULT_METRIC_COMPUTATION_POLICY,
+                            balance_already_applied=True,
                         )
                         metrics_rows.append(("Enacted OEVK", focal_m))
         else:
@@ -977,7 +985,13 @@ def main() -> int:
         )
         layer_names.append(f"Draw {d_label}")
         if not args.no_metrics_legend and va is not None and vb is not None:
-            d_metrics = metrics_for_assignment(dist_col.tolist(), va, vb)
+            d_metrics = metrics_for_assignment(
+                dist_col.tolist(),
+                va,
+                vb,
+                metric_policy=DEFAULT_METRIC_COMPUTATION_POLICY,
+                balance_already_applied=True,
+            )
             metrics_rows.append((sim_name, d_metrics))
 
     layers_spec = [(n, g, c) for n, g, c, _show, _sty in layer_payloads]
