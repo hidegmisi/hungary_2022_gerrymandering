@@ -21,6 +21,12 @@ from hungary_ge.metrics.party_coding import (
     load_partisan_party_coding,
     partisan_party_coding_from_dict,
 )
+from hungary_ge.metrics.policy import (
+    DEFAULT_METRIC_COMPUTATION_POLICY,
+    BalancePolicy,
+    MetricComputationPolicy,
+    NumericalSafetyPolicy,
+)
 from hungary_ge.metrics.report import (
     PARTISAN_COMPARISON_SCHEMA_V1,
     CoverageBlock,
@@ -58,6 +64,10 @@ def partisan_metrics(
 
 
 __all__ = [
+    "DEFAULT_METRIC_COMPUTATION_POLICY",
+    "BalancePolicy",
+    "MetricComputationPolicy",
+    "NumericalSafetyPolicy",
     "PARTISAN_COMPARISON_SCHEMA_V1",
     "PARTISAN_PARTY_CODING_SCHEMA_V1",
     "CoverageBlock",
