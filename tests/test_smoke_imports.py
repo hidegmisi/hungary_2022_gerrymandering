@@ -19,6 +19,13 @@ def test_import_ensemble_persistence() -> None:
     )
 
 
+def test_import_viz_plan_assignments() -> None:
+    from hungary_ge.viz import (  # noqa: F401
+        merge_enacted_districts,
+        merge_simulated_districts,
+    )
+
+
 def test_import_libpysal() -> None:
     import libpysal  # noqa: F401
 
