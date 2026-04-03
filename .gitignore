@@ -52,6 +52,9 @@ data/processed/graph/*.parquet
 data/processed/graph/*.json
 data/processed/graph/*.html
 
+# Per-run pipeline outputs (county mode, rollups); regenerate with pipeline
+data/processed/runs/
+
 # Local scratch (redist / ad-hoc runs)
 _redist_debug/
 _t4326/
