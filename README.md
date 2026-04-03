@@ -28,8 +28,9 @@ uv run ruff format src tests scripts
 
 ## Data
 
-- **Raw precinct geometry:** `data/raw/szavkor_topo/` — settlement JSON files with **szavazókör** polygons and IDs (`maz` county, `taz` settlement, `szk` precinct). Not GeoJSON; see [`docs/data-model.md`](docs/data-model.md).
+- **Raw precinct geometry:** `data/raw/szavkor_topo/` — settlement JSON files with **szavazókör** polygons and IDs (`maz` county, `taz` settlement, `szk` precinct). Not GeoJSON; see [`docs/data-model.md`](docs/data-model.md). The repo tracks the full raw tree and `data/raw/admin` shells; details in [`data/raw/README.md`](data/raw/README.md).
 - **Processed:** canonical national precinct layer as **GeoParquet** (`data/processed/precincts.parquet`) plus optional GeoJSON; large outputs may be gitignored locally.
+- **Reference ensemble run:** step-by-step commands for `data/processed/runs/main/` (void-hex + `redist` ensemble + policy figures) — [`docs/runs/main.md`](docs/runs/main.md).
 
 ### ETL: build the precinct layer
 
@@ -70,6 +71,7 @@ The installable package [`src/hungary_ge/`](src/hungary_ge/) mirrors the ALARM s
 ## Documentation
 
 - [Reproducibility (`REPRODUCIBILITY.md`)](REPRODUCIBILITY.md) — pilot pipeline commands, inputs, optional R/tests
+- [Reference run `main` (`docs/runs/main.md`)](docs/runs/main.md) — void-hex county ensemble + figures
 - [Contributor / agent guide (`AGENTS.md`)](AGENTS.md) — layout, tooling, **Conventional Commits**
 - [Methodology (`docs/methodology.md`)](docs/methodology.md) — ensemble framing and ALARM alignment
 - [Data model (`docs/data-model.md`)](docs/data-model.md) — expected inputs and future representations

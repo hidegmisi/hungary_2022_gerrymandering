@@ -15,11 +15,11 @@ renv::install("redist")
 renv::snapshot()
 ```
 
-If `renv.lock` is present and matches your platform, prefer:
+If `renv.lock` is present and matches your platform, prefer (from this directory):
 
 ```r
 install.packages("renv", repos = "https://cloud.r-project.org")
-renv::restore()
+renv::restore(lockfile = "renv.lock")
 ```
 
 Quick one-off (no renv): install `jsonlite`, `sf`, and `redist` from CRAN, then run the script (the `renv/activate.R` block in `run_smc.R` is skipped if `renv` was never initialized).

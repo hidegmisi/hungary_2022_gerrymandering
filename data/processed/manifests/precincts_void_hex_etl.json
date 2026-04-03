@@ -3,11 +3,11 @@
   "raw_list_total": 10447,
   "n_files_read": 3177,
   "n_records_in": 10447,
-  "n_rows_out": 94115,
+  "n_rows_out": 32962,
   "n_rows_szvk": 10425,
   "n_dropped_unrepaired": 22,
   "out_parquet": "C:\\Users\\hideg\\Documents\\Projects\\hungary_2022_gerrymandering\\data\\processed\\precincts_void_hex.parquet",
-  "out_parquet_sha256": "7f06f8f83f68c2bb233a23bdbe4781b0248124dd2679b77253d515b8765eec7d",
+  "out_parquet_sha256": "1184428e7a160bd994db82c2da7889bcf30bdd543977150ef7c9c1d9f17f91ad",
   "crs": "EPSG:4326",
   "warnings": [
     "drop precinct (unrepaired geometry): 01-003-200",
@@ -33,98 +33,112 @@
     "drop precinct (unrepaired geometry): 18-186-100",
     "drop precinct (unrepaired geometry): 20-134-041"
   ],
+  "geometry_repair": {
+    "metric_crs": "EPSG:32633",
+    "large_delta_threshold_m2": 10.0,
+    "n_rows_in_scope": 10425,
+    "n_invalid_before": 41,
+    "n_empty_after": 0,
+    "max_abs_area_delta_m2": 0.7624008109560236,
+    "precinct_ids_large_area_delta": [],
+    "n_ids_large_delta_reported": 0
+  },
   "with_gaps": true,
-  "shell_path": "C:\\Users\\hideg\\Documents\\Projects\\hungary_2022_gerrymandering\\data\\raw\\admin\\hu_megye_shell_maz.geojson",
+  "shell_path": "C:\\Users\\hideg\\Documents\\Projects\\hungary_2022_gerrymandering\\data\\raw\\admin",
   "shell_maz_column": "maz",
-  "shell_sha256": "2666f31301beeffbef566c043dd75febe72736c5919ac6c9c030dfe99a9fa47a",
+  "shell_sha256": "e982d5c73e7fc2000681f9d87c3ae555ece305be3799fa5b3b4d39c88e502c14",
   "gap_build": {
-    "n_shell_features_read": 19,
+    "n_shell_features_read": 20,
     "n_counties_processed": 20,
-    "n_gap_polygons": 83690,
-    "n_gap_polygons_raw": 4189,
-    "n_void_cells_after_hex": 83690,
-    "n_dropped_below_min_area": 1460,
-    "total_gap_area_m2": 56761592878.27837,
-    "mean_szvk_area_m2": 3139190.809944127,
-    "hex_cell_area_m2_used": 3139190.809944127,
+    "n_gap_polygons": 22537,
+    "n_gap_polygons_raw": 9641,
+    "n_void_cells_after_hex": 22537,
+    "n_dropped_below_min_area": 5971,
+    "total_gap_area_m2": 52526065639.16851,
+    "mean_szvk_area_m2": 6396358.822598573,
+    "hex_cell_area_m2_used": 5000000.0,
     "n_hex_cells_truncated": 0,
-    "n_void_polygons_dropped_post_quality": 3767,
+    "n_void_polygons_dropped_post_quality": 7783,
     "per_maz": {
       "01": {
-        "n_gaps": 1980,
-        "area_m2_metric": 180467933.27010134
+        "n_gaps": 1247,
+        "area_m2_metric": 180323233.08965683
       },
       "02": {
-        "n_gaps": 1193,
-        "area_m2_metric": 1307245741.9739125
+        "n_gaps": 645,
+        "area_m2_metric": 1233545106.1872554
       },
       "03": {
-        "n_gaps": 7005,
-        "area_m2_metric": 5244223650.976506
+        "n_gaps": 1809,
+        "area_m2_metric": 5194063621.618426
       },
       "04": {
-        "n_gaps": 7440,
-        "area_m2_metric": 4641672347.376665
+        "n_gaps": 1617,
+        "area_m2_metric": 4595414274.529048
       },
       "05": {
-        "n_gaps": 5027,
-        "area_m2_metric": 2927892598.400493
+        "n_gaps": 1233,
+        "area_m2_metric": 2827296655.1847577
       },
       "06": {
-        "n_gaps": 6756,
-        "area_m2_metric": 3316457603.7539654
+        "n_gaps": 1237,
+        "area_m2_metric": 3307383602.438165
       },
       "07": {
-        "n_gaps": 5655,
-        "area_m2_metric": 3358090934.621521
+        "n_gaps": 1410,
+        "area_m2_metric": 3335677499.701305
+      },
+      "08": {
+        "n_gaps": 871,
+        "area_m2_metric": 2026531635.299131
       },
       "09": {
-        "n_gaps": 7478,
-        "area_m2_metric": 4555029693.496907
+        "n_gaps": 1405,
+        "area_m2_metric": 4585841326.433416
       },
       "10": {
-        "n_gaps": 3845,
-        "area_m2_metric": 2187126718.724727
+        "n_gaps": 818,
+        "area_m2_metric": 2166545584.057987
       },
       "11": {
-        "n_gaps": 8182,
-        "area_m2_metric": 4597528567.35476
+        "n_gaps": 1580,
+        "area_m2_metric": 4607715363.57943
       },
       "12": {
-        "n_gaps": 4170,
-        "area_m2_metric": 1479904517.1263707
+        "n_gaps": 612,
+        "area_m2_metric": 1468367100.2031631
       },
       "13": {
-        "n_gaps": 1316,
-        "area_m2_metric": 1046575902.0347067
+        "n_gaps": 441,
+        "area_m2_metric": 1031680466.4508435
       },
       "14": {
-        "n_gaps": 9609,
-        "area_m2_metric": 4625579288.888842
+        "n_gaps": 2988,
+        "area_m2_metric": 4605828376.388423
       },
       "15": {
-        "n_gaps": 1965,
-        "area_m2_metric": 2511383069.3643937
+        "n_gaps": 1004,
+        "area_m2_metric": 2439874233.680429
       },
       "16": {
-        "n_gaps": 4106,
-        "area_m2_metric": 3565814151.40094
+        "n_gaps": 1282,
+        "area_m2_metric": 3521898524.8472877
       },
       "17": {
-        "n_gaps": 4291,
-        "area_m2_metric": 2209568055.447854
+        "n_gaps": 811,
+        "area_m2_metric": 2187354409.565741
       },
       "18": {
-        "n_gaps": 970,
-        "area_m2_metric": 4216886217.298823
+        "n_gaps": 448,
+        "area_m2_metric": 729344580.2463479
       },
       "19": {
-        "n_gaps": 1586,
-        "area_m2_metric": 1465419407.3673553
+        "n_gaps": 573,
+        "area_m2_metric": 1425813884.6196806
       },
       "20": {
-        "n_gaps": 1116,
-        "area_m2_metric": 3324726479.399539
+        "n_gaps": 506,
+        "area_m2_metric": 1055566161.0480237
       }
     },
     "options": {
@@ -137,7 +151,7 @@
     "hex_void": {
       "enabled": true,
       "auto_size": true,
-      "hex_area_factor": 1.0,
+      "hex_area_factor": 1.5,
       "hex_cell_area_m2": null,
       "subdivide_min_void_m2": null,
       "subdivide_min_void_factor": 4.0,
@@ -145,10 +159,7 @@
       "hex_max_cell_area_m2": 5000000.0,
       "max_cells_per_gap": 200000,
       "min_hex_fragment_width_m": 30.0,
-      "min_hex_fragment_area_fraction": 0.15
-    },
-    "warnings": [
-      "no shell polygon for maz=08"
-    ]
+      "min_hex_fragment_area_fraction": null
+    }
   }
 }

@@ -8,13 +8,19 @@ This note lists what you need on disk and which commands rebuild the **pilot** d
 |------|------|
 | Python | 3.12+ (see `.python-version`). Install deps with [`uv`](https://docs.astral.sh/uv/): `uv sync`. |
 | Optional Folium maps | `uv sync --extra viz` for `scripts/map_adjacency.py`, `scripts/map_ensemble_draw.py`, and the pipeline `viz` stage. |
-| Optional R | `Rscript` on `PATH` for `sample_plans(..., backend="redist")`. On Windows, use **User** `Path` (e.g. `C:\Program Files\R\R-*\bin\x64`) and/or Git Bash `~/.bashrc`; see project `.vscode/settings.json` if you use Cursor. Pin R packages when the sampling slice is finalized (`renv` / `DESCRIPTION` TBD). |
+| Optional R | `Rscript` on `PATH` for `sample_plans(..., backend="redist")`. On Windows, use **User** `Path` (e.g. `C:\Program Files\R\R-*\bin\x64`) and/or Git Bash `~/.bashrc`; see project `.vscode/settings.json` if you use Cursor. Pin versions for sampling with [`r/redist/renv.lock`](r/redist/renv.lock): from `r/redist/`, install `renv` then `renv::restore(lockfile = "renv.lock")` (see [`r/redist/README.md`](r/redist/README.md)). |
 
 ## Inputs checklist
 
-1. **Raw precinct JSON:** `data/raw/szavkor_topo/{maz}/{maz}-{taz}.json` (settlement layout as documented in [`docs/data-model.md`](docs/data-model.md)).
-2. **Optional void / hex layer:** county **shell** GeoJSON (or similar) if you use `--etl-with-gaps` / `--etl-void-hex` on the ETL script or pipeline.
+1. **Raw precinct JSON:** `data/raw/szavkor_topo/{maz}/{maz}-{taz}.json` (settlement layout as documented in [`docs/data-model.md`](docs/data-model.md)). This repo tracks the full tree (**3177** files) plus **`data/raw/admin/*.geojson`** shells for `--pipeline-profile void_hex_fuzzy_latest` — see [`data/raw/README.md`](data/raw/README.md).
+2. **Void / hex layer:** county **shell** GeoJSON under `data/raw/admin/` when using that profile (not optional for the reference `main` run).
 3. **No secrets** in config; paths are local.
+
+### Reference run: `main`
+
+The versioned end-to-end recipe for **`run_id=main`** (void-hex GeoParquet, fuzzy 3 m graph, **1000** SMC draws per county, reports, rollup, memo figures) lives in **`docs/runs/main.md`**. The void-hex ETL layer must be **joined** with `precinct_votes` so the graph layer includes `voters` for SMC (`scripts/join_votes_to_precinct_layer.py`; [`scripts/run_main_analysis.sh`](scripts/run_main_analysis.sh) does this automatically). Default CI does **not** upload `data/processed/runs/`; clone the repo and run the documented commands (or [`scripts/run_main_analysis.sh`](scripts/run_main_analysis.sh)). For **bit-identical** ensemble Parquet and figures, distribute a release tarball of `data/processed/runs/main/` (or full inputs + run manifests) outside Git.
+
+**Publishing frozen outputs (optional):** attach `runs/main/` (and optionally `precincts_void_hex.parquet`, `precincts_void_hex_voters.parquet`, `precinct_votes.parquet`, `focal_oevk_assignments.parquet`) to a GitHub Release or Zenodo record; publish SHA-256 for each file; state the git tag and Python/R versions used.
 
 ## Command sequence (happy path)
 

@@ -2,6 +2,15 @@
 # Example: full Hungary county-first ensemble using void-hex GeoParquet + fuzzy adjacency (fixed 3 m buffer).
 # Produces per-county graphs/ensembles/reports and data/processed/runs/<RUN_ID>/national_report.json.
 #
+# -----------------------------------------------------------------------------
+# NOTE: This is NOT the same recipe as the reference run "main".
+#   - Default PARQUET: precincts_void_hex_voters.parquet (main uses the same after join_votes_to_precinct_layer).
+#   - Default SAMPLE_DRAWS: 250 (main uses 1000).
+#   - Passes --allow-disconnected-county-graph (main graph/sample did not).
+#   - Combines graph+sample+reports in one step; omits rollup/policy_figures.
+# For the versioned "main" commands, use docs/runs/main.md or scripts/run_main_analysis.sh.
+# -----------------------------------------------------------------------------
+#
 # Prerequisites:
 #   - Raw szavkor under data/raw/szavkor_topo (if you need to (re)build processed tables).
 #   - National ETL + votes: precincts_void_hex[_voters].parquet, precinct_votes.parquet,
