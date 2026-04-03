@@ -104,6 +104,12 @@ Build weights with [`build_adjacency`](../src/hungary_ge/graph/adjacency.py) aft
 
 **Visualization:** optional Folium HTML (`uv sync --extra viz`, then `scripts/map_adjacency.py`) draws centroid–centroid lines; use a **county filter** (`--maz`) or edge caps for national data. If the layer includes **`unit_kind=void`** (gap polygons), the map uses separate **FeatureGroups**—szvk in grey, void in orange with dashed outline—and **`LayerControl`** to toggle; pass **`--no-gaps`** to plot szvk polygons only.
 
+**Default approach for fuzzy + hex maps (recommended):**
+- Use the hex-void precinct layer (`precincts_void_hex.parquet`) with fuzzy buffering in meters:
+  `--fuzzy --fuzzy-buffering --fuzzy-buffer-m 3`.
+- For **national** maps, set `--max-features` above total row count (or disable truncation) so adjacency is built from the full layer. A low cap changes graph topology, not only rendering size.
+- Avoid relying on tolerance-only buffering for national runs (`--fuzzy-buffering` without `--fuzzy-buffer-m`), because tolerance scales with overall extent and can inflate near-miss edges relative to county-only builds.
+
 ### Void (`gap`) units (shell minus szvk union)
 
 NVI polygons do not tile all land (e.g. uninhabited belts around cities). Optional ETL adds **gap** rows so the contiguity graph can connect szvks that face each other across empty space.

@@ -118,6 +118,24 @@ def test_save_load_roundtrip(tmp_path: Path) -> None:
     assert g2.order.ids == g.order.ids
 
 
+def test_save_adjacency_extra_meta_preserved(tmp_path: Path) -> None:
+    prob = OevkProblem(county_column=None, pop_column=None, crs="EPSG:4326")
+    gdf = _grid_gdf()
+    gdf2, pmap = prepare_precinct_layer(gdf, prob)
+    g = build_adjacency(gdf2, prob, pmap)
+    p = tmp_path / "e.parquet"
+    save_func_meta = {
+        "graph_health": {"ok": True, "n_components": 1},
+        "county_maz": "01",
+    }
+    save_adjacency(g, p, extra_meta=save_func_meta)
+    meta = json.loads(p.with_suffix(".meta.json").read_text(encoding="utf-8"))
+    assert meta["graph_health"]["ok"] is True
+    assert meta["county_maz"] == "01"
+    g2 = load_adjacency(p)
+    assert g2.n_edges == g.n_edges
+
+
 def test_patch_remove_edge() -> None:
     prob = OevkProblem(county_column=None, pop_column=None, crs="EPSG:4326")
     gdf = _grid_gdf()

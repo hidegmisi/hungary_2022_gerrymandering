@@ -371,7 +371,7 @@ Each slice below can be copied into its own **sub-plan** using the template in �
 
 **Current state (baseline):**
 - Piecemeal scripts: `scripts/build_precinct_layer.py`, `scripts/build_precinct_votes.py`, `scripts/map_adjacency.py`; library paths under `hungary_ge.*`.
-- **Orchestration:** `hungary_ge.pipeline` (`uv run python -m hungary_ge.pipeline`, `uv run hungary-ge-pipeline`, or `scripts/run_pilot_pipeline.py`) runs **etl → votes → graph** by default; optional **viz** stage. See [`REPRODUCIBILITY.md`](../REPRODUCIBILITY.md).
+- **Orchestration:** `hungary_ge.pipeline` (`uv run python -m hungary_ge.pipeline`, `uv run hungary-ge-pipeline`, or `scripts/run_pilot_pipeline.py`) runs **etl → votes → graph** by default; optional **viz**. **County mode** (`--mode county`, `--run-id`, optional `--maz`) adds stages **allocation** → **graph** → **viz** → **sample** (`redist`) → **reports** → **rollup** (`national_report.json`). Per-county outputs live under `data/processed/runs/<run_id>/counties/<maz>/`. See [`REPRODUCIBILITY.md`](../REPRODUCIBILITY.md).
 - CI ([`.github/workflows/ci.yml`](../.github/workflows/ci.yml)): `uv sync --all-groups`, **ruff** on `src tests scripts`, **pytest** on push/PR — **default pytest** excludes `requires_r` / `requires_data` / `heavy` markers. Optional [`.github/workflows/ci-heavy.yml`](../.github/workflows/ci-heavy.yml) (`workflow_dispatch`) runs full marker set.
 - Repo-root [`REPRODUCIBILITY.md`](../REPRODUCIBILITY.md) documents inputs and commands.
 
@@ -384,7 +384,7 @@ Each slice below can be copied into its own **sub-plan** using the template in �
    - **Pilot sampler** (optional local): R + `redist` — document **minimum R package set** and pin via `renv` or `DESCRIPTION` when Slice 6 stabilizes.
    - Ensemble write → `ensemble_assignments.parquet` + `.meta.json`.
    - **Diagnostics** JSON + **partisan** report JSON (Slice 8–9 APIs).
-3. **`scripts/run_pilot_pipeline.py`** / **`hungary_ge.pipeline`**: `--only etl|votes|graph|viz` (default first three); optional flags for gaps/hex and fuzzy graph/viz — **fails fast** on missing raw root or parquet. Future: `sample` / `metrics` stages + `--config` when ensemble driver stabilizes.
+3. **`scripts/run_pilot_pipeline.py`** / **`hungary_ge.pipeline`**: `--only` selects among **etl**, **votes**, **allocation**, **graph**, **viz**, **sample**, **reports**, **rollup** (default national stages remain etl → votes → graph). County orchestration is **documented**; optional `--no-county-maps`, `--allow-disconnected-county-graph`, `--rollup-allow-partial`. Optional config file remains future work.
 4. Optional: **`.env.example`** or config YAML listing **no secrets** — data roots only.
 
 **Workstream B — CI and automation:**
@@ -413,7 +413,7 @@ Each slice below can be copied into its own **sub-plan** using the template in �
 
 **Definition of done:**
 - [x] One documented command sequence runs **ETL → votes → graph** on a machine with data present (`run_pilot_pipeline` / `hungary_ge.pipeline`).
-- [ ] Same doc paths to **pilot** `sample_plans` / metrics when R + data + ensemble artifact exist (extend `REPRODUCIBILITY.md` + driver when ensemble step is stable).
+- [x] Same doc paths to **pilot** `sample_plans` / metrics when R + data + ensemble artifact exist (`REPRODUCIBILITY.md` county section + `--only sample|reports|rollup`).
 - [x] `REPRODUCIBILITY.md` + README links; artifact names match `data-model.md`.
 - [x] CI unchanged or **strictly improved** (markers, optional workflow), with a **fast PR job** that stays within a few minutes.
 

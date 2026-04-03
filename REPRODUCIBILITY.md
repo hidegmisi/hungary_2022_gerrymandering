@@ -58,6 +58,60 @@ uv run python scripts/run_pilot_pipeline.py --graph-fuzzy --graph-fuzzy-bufferin
 
 (Adjust `--parquet` if your void/hex layer lives elsewhere.)
 
+## County-first ensemble (optional)
+
+Use this path when you want **per-county** graphs, `redist` ensembles, diagnostics, and a **national rollup** under one run id. Prerequisite: national **`etl`** and **`votes`** (and `focal_oevk_assignments.parquet`) must already exist; the county driver reads `data/processed/precinct_votes.parquet` for reports and the precinct layer for sampling.
+
+Pick a **`RUN_ID`** (folder name under `data/processed/runs/`).
+
+1. **Allocation** — derive `county_oevk_counts.parquet` from focal assignments for every megye in the runs folder:
+
+   ```bash
+   uv run python -m hungary_ge.pipeline --only allocation --run-id "$RUN_ID"
+   ```
+
+2. **Graph** (all counties, or add `--maz 01` for one megye):
+
+   ```bash
+   uv run python -m hungary_ge.pipeline --mode county --run-id "$RUN_ID" --only graph
+   ```
+
+   Folium maps after each county require `uv sync --extra viz`. To skip them: `--no-county-maps`.
+
+3. **`sample`** — R + `redist` per county (tune `--sample-n-draws`, `--sample-seed`, etc.):
+
+   ```bash
+   uv run python -m hungary_ge.pipeline --mode county --run-id "$RUN_ID" --only sample
+   ```
+
+4. **`reports`** — per-county `diagnostics.json` and `partisan_report.json`.
+
+5. **`rollup`** — `data/processed/runs/<RUN_ID>/national_report.json` (use `--rollup-allow-partial` if some counties lack reports).
+
+Example **one-shot** chain after allocation (national mode is unchanged for `etl`/`votes`):
+
+```bash
+RUN_ID=pilot-2022-04
+uv run python -m hungary_ge.pipeline --mode county --run-id "$RUN_ID" \
+  --only graph sample reports rollup
+```
+
+County artifacts live under `data/processed/runs/<RUN_ID>/counties/<maz>/` (`graph/`, `ensemble/`, `reports/`). **Caveat:** ensembles are drawn **within each county** with fixed district counts; they are not a single national coupled sampler over 106 districts.
+
+### Default national fuzzy+hex map settings
+
+For national maps on the hex-void layer, use a **fixed meter buffer** and avoid feature truncation:
+
+```bash
+uv run python scripts/map_adjacency.py \
+  --parquet data/processed/precincts_void_hex.parquet \
+  --fuzzy --fuzzy-buffering --fuzzy-buffer-m 3 \
+  --max-features 30000 --max-edges 300000 \
+  --out data/processed/graph/adjacency_map_national_fuzzy_hex_fixed3m_full.html
+```
+
+Rationale: this keeps fuzzy behavior stable between county and national runs. Small `--max-features` values alter adjacency (not just rendering) because the graph is built after row truncation.
+
 ### Graph-only (skip ETL)
 
 If `precincts.parquet` already exists:
@@ -105,4 +159,4 @@ Artifact names are defined in [`docs/data-model.md`](docs/data-model.md) and [`s
 - `data/processed/precinct_votes.parquet`, `data/processed/focal_oevk_assignments.parquet` (votes)
 - `data/processed/graph/adjacency_edges.parquet` + sidecar metadata (graph)
 
-Future: ensemble parquet, diagnostics JSON, partisan report JSON — see `docs/master-plan.md` (Slices 7–9).
+County runs add per-county **`ensemble/ensemble_assignments.parquet`**, **`reports/`** JSON, and **`national_report.json`** at the run root. See `docs/master-plan.md` (Slice 10).

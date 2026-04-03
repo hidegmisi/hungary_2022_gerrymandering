@@ -14,6 +14,10 @@ from hungary_ge.graph.adjacency_io import (
     load_patch_from_json,
     save_adjacency,
 )
+from hungary_ge.graph.national_adjacency import (
+    build_national_adjacency_merged,
+    county_adjacent_maz_pairs,
+)
 
 __all__ = [
     "AdjacencyBuildOptions",
@@ -23,6 +27,8 @@ __all__ = [
     "adjacency_summary",
     "apply_adjacency_patch",
     "build_adjacency",
+    "build_national_adjacency_merged",
+    "county_adjacent_maz_pairs",
     "load_adjacency",
     "load_patch_from_json",
     "save_adjacency",

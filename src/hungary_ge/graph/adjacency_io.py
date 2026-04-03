@@ -114,11 +114,15 @@ def save_adjacency(
     *,
     hungary_ge_version: str | None = None,
     build_options: AdjacencyBuildOptions | None = None,
+    extra_meta: dict[str, Any] | None = None,
 ) -> None:
     """Write undirected edges ``i < j`` to Parquet and metadata to JSON.
 
     When ``build_options`` is passed with ``fuzzy=True``, fuzzy-related fields are
     written into the JSON for provenance (load ignores them).
+
+    ``extra_meta``: optional top-level keys merged into the written JSON (e.g. county
+    graph provenance and ``graph_health``); must not replace required loader fields.
     """
     edges_parquet = Path(edges_parquet)
     rows: list[dict[str, int]] = []
@@ -152,6 +156,8 @@ def save_adjacency(
             meta["fuzzy_buffer_m"] = build_options.fuzzy_buffer_m
         if build_options.fuzzy_buffering:
             meta["fuzzy_metric_crs"] = build_options.fuzzy_metric_crs
+    if extra_meta:
+        meta.update(extra_meta)
     if meta_json is None:
         meta_json = edges_parquet.with_suffix(".meta.json")
     else:

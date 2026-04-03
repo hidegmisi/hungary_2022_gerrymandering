@@ -7,6 +7,13 @@ Example (single county, default caps)::
 
     uv sync --extra viz
     uv run python scripts/map_adjacency.py --maz 01 --out data/processed/graph/adjacency_map.html
+
+National (no ``--maz``): by default builds adjacency **per county** with fuzzy buffering,
+adds cross-border edges from bicounty runs, then maps — see
+``hungary_ge.graph.national_adjacency``. Use ``--legacy-national-graph`` for one
+``build_adjacency`` call on the full layer. Prefer
+``data/processed/precincts_void_hex.parquet`` when present (auto-picked before
+``precincts.parquet``).
 """
 
 from __future__ import annotations
@@ -26,8 +33,17 @@ except ImportError:
 
 from hungary_ge.config import ProcessedPaths
 from hungary_ge.graph import AdjacencyBuildOptions, adjacency_summary, build_adjacency
+from hungary_ge.graph.national_adjacency import build_national_adjacency_merged
 from hungary_ge.io import load_processed_geoparquet
 from hungary_ge.problem import OevkProblem, prepare_precinct_layer
+
+
+def _default_parquet_path(repo_root: Path) -> Path:
+    void_hex = repo_root / "data/processed/precincts_void_hex.parquet"
+    plain = repo_root / "data/processed/precincts.parquet"
+    if void_hex.is_file():
+        return void_hex
+    return plain
 
 
 def main() -> int:
@@ -37,8 +53,11 @@ def main() -> int:
     parser.add_argument(
         "--parquet",
         type=Path,
-        default=Path("data/processed/precincts.parquet"),
-        help="Precinct GeoParquet path",
+        default=None,
+        help=(
+            "Precinct GeoParquet path "
+            "(default: precincts_void_hex.parquet if present, else precincts.parquet)"
+        ),
     )
     parser.add_argument(
         "--repo-root",
@@ -50,13 +69,13 @@ def main() -> int:
         "--maz",
         type=str,
         default=None,
-        help="Keep only this two-digit county code (e.g. 01). Recommended for national data.",
+        help="Keep only this two-digit county code (e.g. 01). Omit for national map.",
     )
     parser.add_argument(
         "--max-features",
         type=int,
         default=5000,
-        help="Max precinct rows after filters (safety cap).",
+        help="Cap rows after filters. National merge mode refuses truncation (use >= n_rows).",
     )
     parser.add_argument(
         "--max-edges",
@@ -68,17 +87,17 @@ def main() -> int:
         "--contiguity",
         choices=("queen", "rook"),
         default="queen",
-        help="Contiguity rule when --fuzzy is not set (libpysal Queen/Rook)",
+        help="Contiguity when --legacy-national-graph or single-county without --fuzzy",
     )
     parser.add_argument(
         "--fuzzy",
         action="store_true",
-        help="Use libpysal fuzzy_contiguity instead of Queen/Rook",
+        help="Use libpysal fuzzy_contiguity instead of Queen/Rook (single-county / legacy national)",
     )
     parser.add_argument(
         "--fuzzy-buffering",
         action="store_true",
-        help="With --fuzzy: buffer geometries in fuzzy_metric_crs (meters) to close small gaps",
+        help="With --fuzzy: buffer geometries in fuzzy_metric_crs (meters)",
     )
     parser.add_argument(
         "--fuzzy-tolerance",
@@ -90,13 +109,21 @@ def main() -> int:
         "--fuzzy-buffer-m",
         type=float,
         default=None,
-        help="With --fuzzy: fixed buffer distance in meters (overrides tolerance-based buffer)",
+        help="With --fuzzy: fixed buffer distance in meters (national merge default: 3)",
     )
     parser.add_argument(
         "--fuzzy-metric-crs",
         type=str,
         default="EPSG:32633",
         help="With --fuzzy --fuzzy-buffering: projected CRS for buffering (default UTM 33N)",
+    )
+    parser.add_argument(
+        "--legacy-national-graph",
+        action="store_true",
+        help=(
+            "National only: single build_adjacency on full layer (--fuzzy / --contiguity). "
+            "Otherwise county merge + bicounty cross edges (default)."
+        ),
     )
     parser.add_argument(
         "--no-polygons",
@@ -118,43 +145,137 @@ def main() -> int:
 
     repo_root = args.repo_root.resolve()
     paths = ProcessedPaths(repo_root)
-    pq = args.parquet
-    if not pq.is_absolute():
-        pq = (repo_root / pq).resolve()
+    if args.parquet is None:
+        pq = _default_parquet_path(repo_root)
+    else:
+        pq = args.parquet
+        if not pq.is_absolute():
+            pq = (repo_root / pq).resolve()
     if not pq.is_file():
         print(f"Missing precinct layer: {pq}", file=sys.stderr)  # noqa: T201
         return 1
 
     gdf = load_processed_geoparquet(pq)
-    if args.maz is not None and "maz" in gdf.columns:
-        gdf = gdf[gdf["maz"].astype(str) == args.maz].copy()
-    if len(gdf) > args.max_features:
-        gdf = gdf.iloc[: args.max_features].copy()
+    national_merge = args.maz is None and not args.legacy_national_graph
+    if national_merge:
+        if "maz" not in gdf.columns:
+            print(
+                "National county-merge mode requires a 'maz' column; "
+                "use --legacy-national-graph or add megye codes to the layer.",
+                file=sys.stderr,
+            )
+            return 1
+        if len(gdf) > args.max_features:
+            print(
+                f"National county-merge uses the full layer ({len(gdf)} rows > "
+                f"--max-features {args.max_features}). Raise --max-features or use "
+                "--legacy-national-graph.",
+                file=sys.stderr,
+            )
+            return 1
+    else:
+        if args.maz is not None and "maz" in gdf.columns:
+            gdf = gdf[gdf["maz"].astype(str) == args.maz].copy()
+        if len(gdf) > args.max_features:
+            gdf = gdf.iloc[: args.max_features].copy()
 
     prob = OevkProblem(
         county_column=None,
         pop_column=None,
         crs="EPSG:4326",
     )
-    gdf2, pmap = prepare_precinct_layer(gdf, prob)
-    if args.fuzzy:
+
+    if national_merge:
+        buf_m = args.fuzzy_buffer_m if args.fuzzy_buffer_m is not None else 3.0
         adj_opts = AdjacencyBuildOptions(
             fuzzy=True,
-            fuzzy_buffering=args.fuzzy_buffering,
+            fuzzy_buffering=True,
             fuzzy_tolerance=args.fuzzy_tolerance,
-            fuzzy_buffer_m=args.fuzzy_buffer_m,
+            fuzzy_buffer_m=buf_m,
             fuzzy_metric_crs=args.fuzzy_metric_crs,
         )
+        graph = build_national_adjacency_merged(gdf, prob, adj_opts)
+        gdf2, _ = prepare_precinct_layer(gdf, prob)
     else:
-        adj_opts = AdjacencyBuildOptions(contiguity=args.contiguity)
-    graph = build_adjacency(
-        gdf2,
-        prob,
-        pmap,
-        options=adj_opts,
-    )
+        gdf2, pmap = prepare_precinct_layer(gdf, prob)
+        if args.fuzzy:
+            adj_opts = AdjacencyBuildOptions(
+                fuzzy=True,
+                fuzzy_buffering=args.fuzzy_buffering,
+                fuzzy_tolerance=args.fuzzy_tolerance,
+                fuzzy_buffer_m=args.fuzzy_buffer_m,
+                fuzzy_metric_crs=args.fuzzy_metric_crs,
+            )
+        else:
+            adj_opts = AdjacencyBuildOptions(contiguity=args.contiguity)
+        graph = build_adjacency(
+            gdf2,
+            prob,
+            pmap,
+            options=adj_opts,
+        )
     summ = adjacency_summary(graph)
     print(summ)  # noqa: T201
+
+    id_key = graph.order.id_column
+    island_ids = frozenset(str(graph.order.id_at(i)) for i in graph.island_nodes)
+    if island_ids:
+        print(  # noqa: T201
+            f"{len(island_ids)} island unit(s) (no graph neighbors) — thick red outline on map",
+        )
+
+    def _style_szvk(feature: dict) -> dict:
+        props = feature.get("properties") or {}
+        pid = props.get(id_key)
+        if pid is not None and str(pid) in island_ids:
+            return {
+                "fillColor": "#ffc8c8",
+                "color": "#b00000",
+                "weight": 5,
+                "fillOpacity": 0.45,
+            }
+        return {
+            "fillColor": "#eeeeee",
+            "color": "#888888",
+            "weight": 0.5,
+            "fillOpacity": 0.25,
+        }
+
+    def _style_void(feature: dict) -> dict:
+        props = feature.get("properties") or {}
+        pid = props.get(id_key)
+        if pid is not None and str(pid) in island_ids:
+            return {
+                "fillColor": "#ff9f1c",
+                "color": "#b00000",
+                "weight": 5,
+                "fillOpacity": 0.5,
+                "dashArray": "4 3",
+            }
+        return {
+            "fillColor": "#ff9f1c",
+            "color": "#cc7000",
+            "weight": 1.0,
+            "fillOpacity": 0.35,
+            "dashArray": "4 3",
+        }
+
+    def _style_plain(feature: dict) -> dict:
+        props = feature.get("properties") or {}
+        pid = props.get(id_key)
+        if pid is not None and str(pid) in island_ids:
+            return {
+                "fillColor": "#ffc8c8",
+                "color": "#b00000",
+                "weight": 5,
+                "fillOpacity": 0.35,
+            }
+        return {
+            "fillColor": "#eeeeee",
+            "color": "#888888",
+            "weight": 0.5,
+            "fillOpacity": 0.2,
+        }
 
     gdf_metric = gdf2.to_crs(3857)
     centroids_wgs = gdf_metric.geometry.centroid.to_crs(4326)
@@ -197,26 +318,9 @@ def main() -> int:
             is_void = gdf2["unit_kind"].astype(str) == "void"
             szvk_part = gdf2[~is_void]
             void_part = gdf2[is_void]
-            folium.GeoJson(
-                szvk_part.to_json(),
-                style_function=lambda _f: {
-                    "fillColor": "#eeeeee",
-                    "color": "#888888",
-                    "weight": 0.5,
-                    "fillOpacity": 0.25,
-                },
-            ).add_to(fg_szvk)
+            folium.GeoJson(szvk_part.to_json(), style_function=_style_szvk).add_to(fg_szvk)
             fg_void = folium.FeatureGroup(name="Gap (void)", show=True)
-            folium.GeoJson(
-                void_part.to_json(),
-                style_function=lambda _f: {
-                    "fillColor": "#ff9f1c",
-                    "color": "#cc7000",
-                    "weight": 1.0,
-                    "fillOpacity": 0.35,
-                    "dashArray": "4 3",
-                },
-            ).add_to(fg_void)
+            folium.GeoJson(void_part.to_json(), style_function=_style_void).add_to(fg_void)
             fg_szvk.add_to(m)
             fg_void.add_to(m)
             folium.LayerControl(collapsed=False).add_to(m)
@@ -224,15 +328,7 @@ def main() -> int:
             plot_gdf = gdf2
             if args.no_gaps and "unit_kind" in gdf2.columns:
                 plot_gdf = gdf2[gdf2["unit_kind"].astype(str) != "void"]
-            folium.GeoJson(
-                plot_gdf.to_json(),
-                style_function=lambda _f: {
-                    "fillColor": "#eeeeee",
-                    "color": "#888888",
-                    "weight": 0.5,
-                    "fillOpacity": 0.2,
-                },
-            ).add_to(fg_szvk)
+            folium.GeoJson(plot_gdf.to_json(), style_function=_style_plain).add_to(fg_szvk)
             fg_szvk.add_to(m)
 
     m.fit_bounds([[lats.min(), lons.min()], [lats.max(), lons.max()]])
