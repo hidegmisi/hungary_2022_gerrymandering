@@ -9,7 +9,7 @@ As of the current repository layout:
 
 No additional raw downloads are required for rebuilding **`precincts_void_hex.parquet`**, **`precinct_votes.parquet`**, and **`focal_oevk_assignments.parquet`** from a fresh clone.
 
-For the full county-first ensemble and memo figures (**`run_id=main`**), run the steps in [`docs/runs/main.md`](../../docs/runs/main.md). Large outputs (`data/processed/*.parquet`, `data/processed/runs/`, …) stay out of git by default; see [`REPRODUCIBILITY.md`](../../REPRODUCIBILITY.md).
+For the full county-first ensemble and memo figures (**`run_id=main`**), run [`scripts/run_main_analysis.sh`](../../scripts/run_main_analysis.sh) or see [`docs/runs/main.md`](../../docs/runs/main.md). Large outputs (`data/processed/*.parquet`, `data/processed/runs/`, …) stay out of git by default; see the repo [README](../../README.md).
 
 ## `szavkor_topo/`
 

@@ -92,7 +92,7 @@ uv run python -m hungary_ge.pipeline \
   --policy-figures-party-coding "$PARTY_JSON"
 ```
 
-Outputs include `data/processed/runs/main/national_report.json` and `data/processed/runs/main/policy_figures/` (see [`REPRODUCIBILITY.md`](../../REPRODUCIBILITY.md)).
+Outputs include `data/processed/runs/main/national_report.json` and `data/processed/runs/main/policy_figures/` (see the repo [README](../../README.md) for pilot pipeline and tests).
 
 ## R setup (`redist`)
 
@@ -112,4 +112,4 @@ Run in R from the `r/redist` directory so the lockfile path resolves. The lockfi
 
 ## Frozen outputs (bit-identical figures)
 
-CI does not upload ensemble artifacts. To share exact `main` outputs without resampling, publish a tarball (e.g. GitHub Release or Zenodo) of `data/processed/runs/main/` and document checksums; see [`REPRODUCIBILITY.md`](../../REPRODUCIBILITY.md).
+CI does not upload ensemble artifacts. To share exact `main` outputs without resampling, publish a tarball (e.g. GitHub Release or Zenodo) of `data/processed/runs/main/` and document checksums (SHA-256, git tag, Python/R versions).

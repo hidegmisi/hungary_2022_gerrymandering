@@ -31,7 +31,7 @@ Stages follow [`docs/alarm-methodology.md`](docs/alarm-methodology.md) (`redist_
 | `hungary_ge.ensemble` | Stored draws (`PlanEnsemble`; analogue of `redist_plans`) |
 | `hungary_ge.diagnostics` | `summarize_ensemble`, `DiagnosticsReport`, JSON sidecar (`write_diagnostics_json`); optional redist log scrape via ensemble metadata paths |
 | `hungary_ge.metrics` | [`focal_vs_ensemble_metrics`](src/hungary_ge/metrics/compare.py), [`partisan_metrics`](src/hungary_ge/metrics/__init__.py); two-bloc config JSON under `metrics/data/` — see [docs/partisan-metrics.md](docs/partisan-metrics.md) |
-| `hungary_ge.pipeline` | Orchestration (Slice 10): `python -m hungary_ge.pipeline` / `uv run hungary-ge-pipeline`; stages in `pipeline/stages/*_stage.py` (`add_arguments` + `run(ctx)`); see [REPRODUCIBILITY.md](REPRODUCIBILITY.md) |
+| `hungary_ge.pipeline` | Orchestration (Slice 10): `python -m hungary_ge.pipeline` / `uv run hungary-ge-pipeline`; stages in `pipeline/stages/*_stage.py` (`add_arguments` + `run(ctx)`); see [README.md](README.md) and [`docs/runs/main.md`](docs/runs/main.md) |
 
 Prefer **relative paths** in scripts and notebooks so runs are reproducible across machines.
 
@@ -69,6 +69,7 @@ Examples:
 
 ## Where to look first
 
-- [`README.md`](README.md) — setup and roadmap
+- [`README.md`](README.md) — setup, pilot pipeline, tests, **minimum steps** to reproduce `main`
+- [`docs/runs/main.md`](docs/runs/main.md) — full `run_id=main` command sequence
 - [`docs/methodology.md`](docs/methodology.md) — ensemble framing and metric priorities
 - [`docs/references.md`](docs/references.md) — ALARM, redist, literature stubs

@@ -371,10 +371,10 @@ Each slice below can be copied into its own **sub-plan** using the template in �
 
 **Current state (baseline):**
 - Piecemeal scripts: `scripts/build_precinct_layer.py`, `scripts/build_precinct_votes.py`, `scripts/map_adjacency.py`; library paths under `hungary_ge.*`.
-- **Orchestration:** `hungary_ge.pipeline` (`uv run hungary-ge-pipeline` or `uv run python -m hungary_ge.pipeline`) runs **etl → votes → graph** by default; optional **viz**; **`--pipeline-profile`** selects bundled ETL/graph defaults. **County mode** (`--mode county`, `--run-id`, optional `--maz`) adds stages **allocation** → **graph** → **viz** → **sample** (`redist`) → **reports** → **rollup** (`national_report.json`). Per-county outputs live under `data/processed/runs/<run_id>/counties/<maz>/`. See [`REPRODUCIBILITY.md`](../REPRODUCIBILITY.md).
+- **Orchestration:** `hungary_ge.pipeline` (`uv run hungary-ge-pipeline` or `uv run python -m hungary_ge.pipeline`) runs **etl → votes → graph** by default; optional **viz**; **`--pipeline-profile`** selects bundled ETL/graph defaults. **County mode** (`--mode county`, `--run-id`, optional `--maz`) adds stages **allocation** → **graph** → **viz** → **sample** (`redist`) → **reports** → **rollup** (`national_report.json`). Per-county outputs live under `data/processed/runs/<run_id>/counties/<maz>/`. See [README.md](../README.md) and [`docs/runs/main.md`](runs/main.md).
 - **Stage modules:** `src/hungary_ge/pipeline/stages/*_stage.py` each define `NAME`, `add_arguments(parser)`, and `run(ctx)` (see `stages/base.py`); `runner.py` dispatches in `--only` order. Shared helpers: `stages/graph_ops.py`, `stages/county_sequence.py`, `stages/viz_tools.py`. CLI assembly: `pipeline/cli.py` + `stages/core.py` (shared flags).
 - CI ([`.github/workflows/ci.yml`](../.github/workflows/ci.yml)): `uv sync --all-groups`, **ruff** on `src tests scripts`, **pytest** on push/PR — **default pytest** excludes `requires_r` / `requires_data` / `heavy` markers. Optional [`.github/workflows/ci-heavy.yml`](../.github/workflows/ci-heavy.yml) (`workflow_dispatch`) runs full marker set.
-- Repo-root [`REPRODUCIBILITY.md`](../REPRODUCIBILITY.md) documents inputs and commands.
+- Repo-root [README.md](../README.md) documents setup, pilot pipeline, tests, and **minimum steps** to reproduce the reference `main` run; full `main` commands live in [`docs/runs/main.md`](runs/main.md).
 
 **Workstream A — Orchestration (choose one primary story):**
 1. Pick driver: **`justfile`** / **Makefile** / **`uv run python -m hungary_ge.pipeline …`** — keep it **thin**: shell out or call Python entrypoints; avoid burying logic in Make.
@@ -395,9 +395,9 @@ Each slice below can be copied into its own **sub-plan** using the template in �
 4. Confirm **pre-commit** ([`AGENTS.md`](../AGENTS.md)) matches CI ruff scope; add `pre-commit run` to contributor quickstart if missing from README.
 
 **Workstream C — Reproducibility documentation:**
-1. Add **`REPRODUCIBILITY.md`** (repo root) with: OS notes; Python (`uv`, `.python-version`); optional R version + `renv.lock` path; **exact command sequence** for pilot; **input checklist** (what must exist under `data/raw/` / `data/processed/`); where seeds live; expected checksums or row counts if available.
-2. Cross-link from **README** “Quick start / full pipeline” subsection.
-3. One **end-to-end checklist** in `REPRODUCIBILITY.md`: “I have X → I run Y → I expect Z files.”
+1. **`README.md`** (repo root): OS/tooling notes; Python (`uv`, `.python-version`); R + [`r/redist/renv.lock`](../r/redist/renv.lock); pilot pipeline; **minimum** path to reproduce `main` (`scripts/run_main_analysis.sh`); **Tests** section (pytest markers).
+2. **`docs/runs/main.md`**: full `run_id=main` command sequence, optional seed, frozen outputs.
+3. **Input checklist** for raw vs processed data: [`data/raw/README.md`](../data/raw/README.md), [`docs/data-model.md`](data-model.md).
 
 **Workstream D — Developer ergonomics (small, high leverage):**
 - Document **Windows + Git Bash + R on PATH** (User `Path`, `.bashrc`, optional `.vscode/settings.json`) for `Rscript` subprocess calls.
@@ -414,8 +414,8 @@ Each slice below can be copied into its own **sub-plan** using the template in �
 
 **Definition of done:**
 - [x] One documented command sequence runs **ETL → votes → graph** on a machine with data present (`hungary-ge-pipeline` / `hungary_ge.pipeline`).
-- [x] Same doc paths to **pilot** `sample_plans` / metrics when R + data + ensemble artifact exist (`REPRODUCIBILITY.md` county section + `--only sample|reports|rollup`).
-- [x] `REPRODUCIBILITY.md` + README links; artifact names match `data-model.md`.
+- [x] Same doc paths to **pilot** `sample_plans` / metrics when R + data + ensemble artifact exist ([README.md](../README.md) county section + `--only sample|reports|rollup`; [`docs/runs/main.md`](runs/main.md) for `main`).
+- [x] README + `docs/runs/main.md` links; artifact names match `data-model.md`.
 - [x] CI unchanged or **strictly improved** (markers, optional workflow), with a **fast PR job** that stays within a few minutes.
 
 ---

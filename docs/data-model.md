@@ -213,7 +213,7 @@ Rows = units (`precinct_id` + one column per draw). Draw columns are named `d000
 
 **Loaders:** [`save_plan_ensemble`](../src/hungary_ge/ensemble/persistence.py), [`load_plan_ensemble`](../src/hungary_ge/ensemble/persistence.py); lazy per-draw reads via [`load_plan_ensemble_draw_column`](../src/hungary_ge/ensemble/persistence.py).
 
-**Map QA (optional):** [`scripts/map_ensemble_draw.py`](../scripts/map_ensemble_draw.py) with `uv sync --extra viz` builds a Folium HTML map of **focal** `oevk_id_full` and selected **simulated draws** on the county’s prepared precinct geometry (see [REPRODUCIBILITY.md](../REPRODUCIBILITY.md)).
+**Map QA (optional):** [`scripts/map_ensemble_draw.py`](../scripts/map_ensemble_draw.py) with `uv sync --extra viz` builds a Folium HTML map of **focal** `oevk_id_full` and selected **simulated draws** on the county’s prepared precinct geometry (see [README.md](../README.md) — Ensemble map preview).
 
 #### Diagnostics JSON (Slice 8)
 

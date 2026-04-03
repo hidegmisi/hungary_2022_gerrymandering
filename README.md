@@ -1,5 +1,24 @@
 # Hungary 2022 gerrymandering — ensemble analysis
 
+## Reproduce the reference `main` analysis
+
+**Minimum path** (from the **repository root**, Bash — Git Bash or WSL on Windows):
+
+1. **Python 3.12+** and **[uv](https://docs.astral.sh/uv/)**: `uv sync`
+2. **R** with **`redist`** on `PATH` (`Rscript`). Pin versions with [`r/redist/renv.lock`](r/redist/renv.lock) — see [`r/redist/README.md`](r/redist/README.md) (`renv::restore(lockfile = "renv.lock")` from `r/redist/`). On Windows, add R’s `bin\x64` to your user `PATH` if needed.
+3. **Inputs**: this repo tracks **`data/raw/szavkor_topo`** and **`data/raw/admin`** (see [`data/raw/README.md`](data/raw/README.md)); no extra raw downloads for the void-hex stack.
+4. Run:
+
+```bash
+bash scripts/run_main_analysis.sh
+```
+
+That script runs void-hex **ETL + votes**, builds **`precincts_void_hex_voters.parquet`** (joins votes so SMC has a non-missing **`voters`** column), then county mode **`run_id=main`**: allocation → fuzzy graphs → **1000** `redist` SMC draws per county → reports → rollup → **policy figures**. Outputs: **`data/processed/runs/main/national_report.json`**, **`data/processed/runs/main/policy_figures/`**. The full run is **slow** (many counties × 1000 draws).
+
+Manual steps, `RUN_ID`, optional `--sample-seed`, and publishing frozen outputs: **[`docs/runs/main.md`](docs/runs/main.md)**.
+
+---
+
 This project quantifies gerrymandering in Hungary by generating a large ensemble of legally plausible **OEVK** (Országgyűlési egyéni választókerület — single-member constituency) plans and comparing outcomes to baselines, following ideas from the Harvard **ALARM** (Algorithm-Assisted Redistricting Methodology) project: simulate many alternative plans under explicit rules and geography, then assess how extreme an enacted or proposed plan is relative to that distribution.
 
 ## Setup
@@ -29,8 +48,7 @@ uv run ruff format src tests scripts
 ## Data
 
 - **Raw precinct geometry:** `data/raw/szavkor_topo/` — settlement JSON files with **szavazókör** polygons and IDs (`maz` county, `taz` settlement, `szk` precinct). Not GeoJSON; see [`docs/data-model.md`](docs/data-model.md). The repo tracks the full raw tree and `data/raw/admin` shells; details in [`data/raw/README.md`](data/raw/README.md).
-- **Processed:** canonical national precinct layer as **GeoParquet** (`data/processed/precincts.parquet`) plus optional GeoJSON; large outputs may be gitignored locally.
-- **Reference ensemble run:** step-by-step commands for `data/processed/runs/main/` (void-hex + `redist` ensemble + policy figures) — [`docs/runs/main.md`](docs/runs/main.md).
+- **Processed:** canonical national precinct layer as **GeoParquet** (`data/processed/precincts.parquet`) plus optional GeoJSON; large outputs (`*.parquet`, `data/processed/runs/`, …) are usually gitignored.
 
 ### ETL: build the precinct layer
 
@@ -46,13 +64,15 @@ Other processed artifacts (graphs, votes tables, ensemble outputs) also go under
 
 ### Pilot pipeline (ETL → votes → graph)
 
-Slice 10 bundles the default **processed-data** steps in one command (optional Folium **viz** stage needs `uv sync --extra viz`):
+Default Slice 10 command (optional Folium **viz** stage needs `uv sync --extra viz`):
 
 ```bash
 uv run hungary-ge-pipeline
 ```
 
-Same as `uv run python -m hungary_ge.pipeline`. County allocation uses the pipeline’s **allocation** stage (`--only allocation --run-id …`), not a separate package CLI. Commands, profiles (`--pipeline-profile`), inputs, graph-only runs, and **pytest** marker behavior are documented in [`REPRODUCIBILITY.md`](REPRODUCIBILITY.md).
+Same as `uv run python -m hungary_ge.pipeline`. Default stages: **etl** → **votes** → **graph** (writes `precincts.parquet`, vote/focal parquets, national `graph/adjacency_edges.parquet`). County allocation uses **`--only allocation --run-id …`**. Profiles: **`--pipeline-profile plain`** or **`--pipeline-profile void_hex_fuzzy_latest`** (void-hex ETL + fuzzy graph defaults). See **`--help`** and stage modules under `src/hungary_ge/pipeline/stages/`.
+
+After a successful run, the CLI may write **`data/processed/manifests/run_<UTC>.json`** (argv, optional git HEAD, fingerprints when present).
 
 ### Adjacency map (optional)
 
@@ -64,17 +84,59 @@ uv run python scripts/map_adjacency.py --maz 01 --out data/processed/graph/adjac
 
 Subsets by county (`maz`) and caps edges/features so the HTML stays usable. See [`docs/data-model.md`](docs/data-model.md) (adjacency subsection).
 
+### County-first ensemble (general `RUN_ID`)
+
+Per-county graphs, **`redist`** ensembles, diagnostics, **rollup** (`national_report.json`), and **`policy_figures`** live under `data/processed/runs/<RUN_ID>/`. Stages: **allocation** → **graph** → **sample** → **reports** → **rollup** → **policy_figures** (requires national **etl** + **votes** first). Example after allocation:
+
+```bash
+RUN_ID=pilot-2022-04
+uv run python -m hungary_ge.pipeline --mode county --run-id "$RUN_ID" \
+  --only graph sample reports rollup policy_figures
+```
+
+**Caveat:** ensembles are drawn **within each county** with fixed district counts, not one national 106-district coupled sampler. For the void-hex **`main`** recipe (voters join, fuzzy 3 m, 1000 draws), use **[`docs/runs/main.md`](docs/runs/main.md)** or **`scripts/run_main_analysis.sh`**.
+
+### Ensemble map preview (Folium)
+
+Requires `uv sync --extra viz`, focal + ensemble Parquet under the run. Example:
+
+```bash
+uv run python scripts/map_ensemble_draw.py --repo-root . --run-id "$RUN_ID" --maz 01 --draw 1 \
+  --out data/processed/runs/"$RUN_ID"/counties/01/ensemble/ensemble_map.html
+```
+
+See [`docs/data-model.md`](docs/data-model.md).
+
 ### Python package layout
 
 The installable package [`src/hungary_ge/`](src/hungary_ge/) mirrors the ALARM simulation pipeline (problem spec → adjacency → sampling → plan ensemble → diagnostics and metrics). Submodule names and their match to `redist`-style stages are summarized in [`AGENTS.md`](AGENTS.md). Conceptual background: [`docs/alarm-methodology.md`](docs/alarm-methodology.md); artifact conventions: [`docs/data-model.md`](docs/data-model.md).
 
+## Tests
+
+Default **`uv run pytest`** skips tests marked **`requires_r`** (R + redist), **`requires_data`**, and **`heavy`** (see `pyproject.toml`).
+
+```bash
+uv run pytest
+```
+
+All markers (needs `Rscript` + working **redist** for R tests):
+
+```bash
+uv run pytest --override-ini addopts=
+```
+
+R-only:
+
+```bash
+uv run pytest -m requires_r --override-ini addopts=
+```
+
 ## Documentation
 
-- [Reproducibility (`REPRODUCIBILITY.md`)](REPRODUCIBILITY.md) — pilot pipeline commands, inputs, optional R/tests
-- [Reference run `main` (`docs/runs/main.md`)](docs/runs/main.md) — void-hex county ensemble + figures
+- [Reference run `main` (`docs/runs/main.md`)](docs/runs/main.md) — void-hex county ensemble + memo figures (manual commands)
 - [Contributor / agent guide (`AGENTS.md`)](AGENTS.md) — layout, tooling, **Conventional Commits**
 - [Methodology (`docs/methodology.md`)](docs/methodology.md) — ensemble framing and ALARM alignment
-- [Data model (`docs/data-model.md`)](docs/data-model.md) — expected inputs and future representations
+- [Data model (`docs/data-model.md`)](docs/data-model.md) — expected inputs and representations
 - [References (`docs/references.md`)](docs/references.md) — ALARM, tools, and citation stubs
 
 ## Roadmap

@@ -14,7 +14,7 @@
 # Prerequisites:
 #   - Raw szavkor under data/raw/szavkor_topo (if you need to (re)build processed tables).
 #   - National ETL + votes: precincts_void_hex[_voters].parquet, precinct_votes.parquet,
-#     focal_oevk_assignments.parquet (see REPRODUCIBILITY.md "Hex void ETL").
+#     focal_oevk_assignments.parquet (see README.md and docs/runs/main.md).
 #   - R + redist on PATH for the sample stage.
 #
 # Usage (from repo root, Git Bash or WSL):
