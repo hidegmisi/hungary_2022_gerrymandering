@@ -1,8 +1,9 @@
-"""National adjacency by merging per-county fuzzy builds plus bicounty cross-border edges.
+"""National adjacency by merging per-county builds plus bicounty cross-border edges.
 
 Intra-county edges use the same subgraph as a county-only run; inter-county edges
-come from fuzzy contiguity on two counties together. That graph can differ from
-a single libpysal ``fuzzy_contiguity`` fit on the entire national layer.
+come from the same contiguity rule (queen, rook, or fuzzy) on the **union** of two
+adjacent counties, keeping only pairs whose ``maz`` differ. That graph can differ
+from a single libpysal pass on the entire national layer.
 """
 
 from __future__ import annotations
@@ -17,7 +18,12 @@ from hungary_ge.graph.adjacency_graph import (
 )
 from hungary_ge.problem import OevkProblem, prepare_precinct_layer
 
-_MERGED_CONTIGUITY_LABEL = "fuzzy:buffered:county_merged"
+
+def _merged_contiguity_label(options: AdjacencyBuildOptions) -> str:
+    if options.fuzzy:
+        base = "fuzzy:buffered" if options.fuzzy_buffering else "fuzzy:intersect"
+        return f"{base}:county_merged"
+    return f"{options.contiguity}:county_merged"
 
 
 def _normalize_maz(value: str | int | float) -> str:
@@ -118,21 +124,19 @@ def build_national_adjacency_merged(
     problem: OevkProblem,
     options: AdjacencyBuildOptions,
 ) -> AdjacencyGraph:
-    """Build national graph: intra-county fuzzy on each ``maz``, plus cross edges from bicounty fuzzy.
+    """Build national graph: per-``maz`` subgraphs plus bicounty cross-border edges.
 
     Expects ``gdf_raw`` with ``maz`` and geometries aligned to ``problem`` (same as
     single-pass ``prepare_precinct_layer`` + ``build_adjacency`` inputs).
 
     Intra-county edges use a graph fitted **only** on that county's rows (like the
-    county pipeline). Cross-county edges come from fuzzy contiguity on the **union**
-    of two adjacent counties, keeping only pairs whose ``maz`` differ. This can
-    differ slightly from one libpysal run on the full national layer.
+    county pipeline). Cross-county edges use the same ``options`` (queen, rook, or
+    fuzzy) on the **union** of two adjacent counties, keeping only pairs whose
+    ``maz`` differ. This can differ slightly from one libpysal run on the full
+    national layer.
     """
     if "maz" not in gdf_raw.columns:
         msg = "build_national_adjacency_merged requires a 'maz' column"
-        raise ValueError(msg)
-    if not options.fuzzy:
-        msg = "build_national_adjacency_merged expects options.fuzzy=True"
         raise ValueError(msg)
 
     gdf_nat, pmap_nat = prepare_precinct_layer(gdf_raw, problem)
@@ -179,4 +183,4 @@ def build_national_adjacency_merged(
                 edges.add((ni, nj) if ni < nj else (nj, ni))
 
     nbr = _neighbor_lists_from_edge_set(n, edges)
-    return from_neighbor_lists(pmap_nat, _MERGED_CONTIGUITY_LABEL, nbr)
+    return from_neighbor_lists(pmap_nat, _merged_contiguity_label(options), nbr)

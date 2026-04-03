@@ -50,17 +50,26 @@ def build_precinct_adjacency(
     national_fuzzy_buffer_m: float | None,
     national_fuzzy_metric_crs: str,
     county_adj_opts: AdjacencyBuildOptions | None = None,
+    national_adj_opts: AdjacencyBuildOptions | None = None,
 ) -> tuple[AdjacencyGraph, gpd.GeoDataFrame, AdjacencyBuildOptions]:
-    """Build adjacency; national scope uses county-merge graph (needs ``maz`` on ``gdf``)."""
+    """Build adjacency; national scope uses county-merge graph (needs ``maz`` on ``gdf``).
+
+    When ``national_adj_opts`` is set, it is used for the national merge (e.g. pure
+    queen/rook). Otherwise the default is fuzzy buffering (3 m unless
+    ``national_fuzzy_buffer_m`` is set).
+    """
     if national_county_merge:
-        buf_m = national_fuzzy_buffer_m if national_fuzzy_buffer_m is not None else 3.0
-        adj_opts = AdjacencyBuildOptions(
-            fuzzy=True,
-            fuzzy_buffering=True,
-            fuzzy_tolerance=national_fuzzy_tolerance,
-            fuzzy_buffer_m=buf_m,
-            fuzzy_metric_crs=national_fuzzy_metric_crs,
-        )
+        if national_adj_opts is not None:
+            adj_opts = national_adj_opts
+        else:
+            buf_m = national_fuzzy_buffer_m if national_fuzzy_buffer_m is not None else 3.0
+            adj_opts = AdjacencyBuildOptions(
+                fuzzy=True,
+                fuzzy_buffering=True,
+                fuzzy_tolerance=national_fuzzy_tolerance,
+                fuzzy_buffer_m=buf_m,
+                fuzzy_metric_crs=national_fuzzy_metric_crs,
+            )
         graph = build_national_adjacency_merged(gdf, prob, adj_opts)
         gdf2, _ = prepare_precinct_layer(gdf, prob)
         return graph, gdf2, adj_opts

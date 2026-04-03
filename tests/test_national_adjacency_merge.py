@@ -85,6 +85,26 @@ def test_merged_national_includes_cross_maz_edges() -> None:
     assert i2 in merged.neighbor_lists[i1]
 
 
+def test_merged_national_topological_includes_cross_maz_edges() -> None:
+    """Same geometry as fuzzy cross test: queen shares an edge between counties."""
+    gdf = gpd.GeoDataFrame(
+        {
+            "maz": ["01", "02"],
+            DEFAULT_PRECINCT_ID_COLUMN: ["01-x", "02-x"],
+            "geometry": [box(0, 0, 1, 1), box(1, 0, 2, 1)],
+        },
+        crs="EPSG:4326",
+    )
+    prob = OevkProblem(county_column=None, pop_column=None, crs="EPSG:4326")
+    opts = AdjacencyBuildOptions(contiguity="queen")
+    merged = build_national_adjacency_merged(gdf, prob, opts)
+    assert merged.contiguity == "queen:county_merged"
+    assert merged.n_edges == 1
+    i1 = merged.order.index_of("01-x")
+    i2 = merged.order.index_of("02-x")
+    assert i2 in merged.neighbor_lists[i1]
+
+
 def test_build_national_adjacency_requires_maz_column() -> None:
     gdf = gpd.GeoDataFrame(
         {DEFAULT_PRECINCT_ID_COLUMN: ["a"], "geometry": [box(0, 0, 1, 1)]},

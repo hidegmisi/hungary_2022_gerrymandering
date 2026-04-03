@@ -8,11 +8,13 @@ Example (single county, default caps)::
     uv sync --extra viz
     uv run python scripts/map_adjacency.py --maz 01 --out data/processed/graph/adjacency_map.html
 
-National (no ``--maz``): builds adjacency **per county** with fuzzy buffering,
-adds cross-border edges from bicounty runs, then maps — see
-``hungary_ge.graph.national_adjacency``. The layer must include a ``maz`` column.
+National (no ``--maz``): builds adjacency **per county** plus bicounty cross edges — see
+``hungary_ge.graph.national_adjacency``. Default national build uses **fuzzy** buffering
+(3 m). Use ``--national-topological`` for pure Queen/Rook (no buffer / void correction).
+The layer must include a ``maz`` column.
 Prefer ``data/processed/precincts_void_hex.parquet`` when present (auto-picked
-before ``precincts.parquet``).
+before ``precincts.parquet``); pass ``--parquet data/processed/precincts.parquet`` to
+avoid void-hex / gap rows.
 
 Polygons are drawn from the GeoParquet as stored (WGS84); void hex sizing and filters
 are applied in ``build_precinct_layer`` / ``gaps_hex``, not in this script.
@@ -40,7 +42,7 @@ import geopandas as gpd
 from folium.map import CustomPane
 
 from hungary_ge.config import ProcessedPaths
-from hungary_ge.graph import adjacency_summary
+from hungary_ge.graph import AdjacencyBuildOptions, adjacency_summary
 from hungary_ge.io import (
     GapShellSource,
     load_processed_geoparquet,
@@ -193,6 +195,14 @@ def main() -> int:
         help="If layer has unit_kind, draw szvk polygons only (hide void/gap features).",
     )
     parser.add_argument(
+        "--national-topological",
+        action="store_true",
+        help=(
+            "National map only: build county-merged graph with --contiguity queen/rook "
+            "(no fuzzy buffering)."
+        ),
+    )
+    parser.add_argument(
         "--out",
         type=Path,
         default=None,
@@ -241,6 +251,9 @@ def main() -> int:
     )
 
     if national_merge:
+        nat_opts = None
+        if args.national_topological:
+            nat_opts = AdjacencyBuildOptions(contiguity=args.contiguity)
         graph, gdf2, _adj_opts = build_precinct_adjacency(
             gdf,
             prob,
@@ -248,6 +261,7 @@ def main() -> int:
             national_fuzzy_tolerance=args.fuzzy_tolerance,
             national_fuzzy_buffer_m=args.fuzzy_buffer_m,
             national_fuzzy_metric_crs=args.fuzzy_metric_crs,
+            national_adj_opts=nat_opts,
         )
     else:
         county_opts = adjacency_options_from_map_adjacency_args(args)
