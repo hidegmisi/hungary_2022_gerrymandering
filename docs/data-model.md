@@ -213,6 +213,8 @@ Rows = units (`precinct_id` + one column per draw). Draw columns are named `d000
 
 **Loaders:** [`save_plan_ensemble`](../src/hungary_ge/ensemble/persistence.py), [`load_plan_ensemble`](../src/hungary_ge/ensemble/persistence.py); lazy per-draw reads via [`load_plan_ensemble_draw_column`](../src/hungary_ge/ensemble/persistence.py).
 
+**Map QA (optional):** [`scripts/map_ensemble_draw.py`](../scripts/map_ensemble_draw.py) with `uv sync --extra viz` builds a Folium HTML map of **focal** `oevk_id_full` and selected **simulated draws** on the county’s prepared precinct geometry (see [REPRODUCIBILITY.md](../REPRODUCIBILITY.md)).
+
 #### Diagnostics JSON (Slice 8)
 
 Optional **UTF-8 JSON** written next to the assignments Parquet (default basename `{parquet_stem}_diagnostics.json`, e.g. `ensemble_assignments_diagnostics.json` when the Parquet is `ensemble_assignments.parquet`). Produced by [`write_diagnostics_json`](../src/hungary_ge/diagnostics/report.py) or by passing ``diagnostics_report=`` into [`save_plan_ensemble`](../src/hungary_ge/ensemble/persistence.py). The ensemble sidecar manifest may list ``diagnostics_file`` with that basename.

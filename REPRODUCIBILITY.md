@@ -7,7 +7,7 @@ This note lists what you need on disk and which commands rebuild the **pilot** d
 | Tool | Notes |
 |------|------|
 | Python | 3.12+ (see `.python-version`). Install deps with [`uv`](https://docs.astral.sh/uv/): `uv sync`. |
-| Optional Folium maps | `uv sync --extra viz` for `scripts/map_adjacency.py` and the pipeline `viz` stage. |
+| Optional Folium maps | `uv sync --extra viz` for `scripts/map_adjacency.py`, `scripts/map_ensemble_draw.py`, and the pipeline `viz` stage. |
 | Optional R | `Rscript` on `PATH` for `sample_plans(..., backend="redist")`. On Windows, use **User** `Path` (e.g. `C:\Program Files\R\R-*\bin\x64`) and/or Git Bash `~/.bashrc`; see project `.vscode/settings.json` if you use Cursor. Pin R packages when the sampling slice is finalized (`renv` / `DESCRIPTION` TBD). |
 
 ## Inputs checklist
@@ -97,6 +97,17 @@ uv run python -m hungary_ge.pipeline --mode county --run-id "$RUN_ID" \
 ```
 
 County artifacts live under `data/processed/runs/<RUN_ID>/counties/<maz>/` (`graph/`, `ensemble/`, `reports/`). **Caveat:** ensembles are drawn **within each county** with fixed district counts; they are not a single national coupled sampler over 106 districts.
+
+### Ensemble plan preview (Folium)
+
+Requires `uv sync --extra viz`, [`focal_oevk_assignments.parquet`](docs/data-model.md) under `data/processed/`, and county [`ensemble_assignments.parquet`](docs/data-model.md) (**long** layout). The script builds the same `OevkProblem` / `prepare_precinct_layer` path as county sampling, then draws **Enacted OEVK** (focal `oevk_id_full`) and one or more **simulated** layers (Parquet `draw` labels) as togglable choropleths.
+
+```bash
+uv run python scripts/map_ensemble_draw.py --repo-root . --run-id "$RUN_ID" --maz 01 --draw 1 \
+  --out data/processed/runs/"$RUN_ID"/counties/01/ensemble/ensemble_map.html
+```
+
+Defaults: precinct GeoParquet (`precincts_void_hex.parquet` if present, else `precincts.parquet`), focal table `data/processed/focal_oevk_assignments.parquet`, `--pop-column voters` (match `--sample-pop-column`). Use `--draws 1,2,3` for multiple sim layers; `--no-enacted-layer` if focal is unavailable; `--ensemble-parquet` and `--ndists` / `--maz` when not resolving paths from `--run-id`.
 
 ### Default national fuzzy+hex map settings
 
