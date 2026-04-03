@@ -86,6 +86,8 @@ Pick a **`RUN_ID`** (folder name under `data/processed/runs/`).
    ```
 
 4. **`reports`** — per-county `diagnostics.json` and `partisan_report.json`.
+   - Default party coding is Fidesz–KDNP (`votes_list_952`) vs united opposition joint list (`votes_list_950`); override with `--reports-party-coding`.
+   - Symmetric statewide vote balance is **on** by default for partisan metrics; disable with `--no-partisan-balance` or tune `--partisan-balance-eps-bloc`, `--partisan-balance-eps-total`, `--partisan-small-values` (same flags apply to `policy_figures`).
 
 5. **`rollup`** — `data/processed/runs/<RUN_ID>/national_report.json` (use `--rollup-allow-partial` if some counties lack reports).
 

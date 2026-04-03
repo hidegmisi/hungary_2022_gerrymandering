@@ -6,7 +6,7 @@ Slice 1 domain model: configuration only. Transform and EG math wire up in later
 from __future__ import annotations
 
 from dataclasses import dataclass
-from typing import Literal
+from typing import Any, Literal
 
 BalanceMode = Literal["symmetric"]
 SmallValuesMode = Literal["raise", "skip_balance", "clip"]
@@ -55,6 +55,16 @@ class MetricComputationPolicy:
 
     balance: BalancePolicy = BalancePolicy()
     safety: NumericalSafetyPolicy = NumericalSafetyPolicy()
+
+    def to_jsonable_summary(self) -> dict[str, Any]:
+        """Serializable knobs for report sidecars and cross-run comparability."""
+        return {
+            "balance_enabled": self.balance.enabled,
+            "balance_mode": self.balance.mode,
+            "eps_bloc": self.safety.eps_bloc,
+            "eps_total": self.safety.eps_total,
+            "on_small_values": self.safety.on_small_values,
+        }
 
 
 DEFAULT_METRIC_COMPUTATION_POLICY = MetricComputationPolicy()

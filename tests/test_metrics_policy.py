@@ -48,3 +48,12 @@ def test_policies_are_frozen() -> None:
     p = BalancePolicy()
     with pytest.raises(FrozenInstanceError):
         p.enabled = False  # type: ignore[misc]
+
+
+def test_metric_computation_policy_to_jsonable_summary() -> None:
+    p = MetricComputationPolicy()
+    d = p.to_jsonable_summary()
+    assert d["balance_enabled"] is True
+    assert d["balance_mode"] == "symmetric"
+    assert d["on_small_values"] == "raise"
+    assert "eps_bloc" in d and "eps_total" in d

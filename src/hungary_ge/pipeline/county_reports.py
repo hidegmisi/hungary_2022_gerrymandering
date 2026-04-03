@@ -26,6 +26,10 @@ from hungary_ge.metrics.policy import (
     DEFAULT_METRIC_COMPUTATION_POLICY,
     MetricComputationPolicy,
 )
+from hungary_ge.metrics.report import (
+    PARTISAN_EFFICIENCY_GAP_DEFINITION_ID,
+    PARTISAN_REPORT_METADATA_SCHEMA_V1,
+)
 from hungary_ge.pipeline.county_allocation import normalize_maz
 from hungary_ge.pipeline.county_sample import county_ndists_by_maz
 from hungary_ge.problem import DEFAULT_PRECINCT_ID_COLUMN
@@ -139,6 +143,13 @@ def run_county_reports(
             **partisan.extra,
             "county_maz": maz_n,
             "county_run_id": run_id,
+            "partisan_report_metadata_schema": PARTISAN_REPORT_METADATA_SCHEMA_V1,
+            "efficiency_gap_definition_id": PARTISAN_EFFICIENCY_GAP_DEFINITION_ID,
+            "metric_computation_policy": pol.to_jsonable_summary(),
+            "party_coding_columns": {
+                "party_a_columns": list(coding.party_a_columns),
+                "party_b_columns": list(coding.party_b_columns),
+            },
         },
     )
 

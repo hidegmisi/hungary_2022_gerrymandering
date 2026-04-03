@@ -17,6 +17,10 @@ from hungary_ge.config import (
 from hungary_ge.ensemble.persistence import save_plan_ensemble
 from hungary_ge.ensemble.plan_ensemble import PlanEnsemble
 from hungary_ge.metrics.party_coding import default_partisan_party_coding_path
+from hungary_ge.metrics.report import (
+    PARTISAN_EFFICIENCY_GAP_DEFINITION_ID,
+    PARTISAN_REPORT_METADATA_SCHEMA_V1,
+)
 from hungary_ge.pipeline.county_reports import (
     populations_aligned_to_units,
     run_county_reports,
@@ -107,6 +111,10 @@ def test_run_county_reports_writes_json(tmp_path: Path) -> None:
     assert diag["n_units"] == 2
     part = json.loads(ppath.read_text(encoding="utf-8"))
     assert part["extra"]["county_maz"] == "01"
+    assert part["extra"]["partisan_report_metadata_schema"] == PARTISAN_REPORT_METADATA_SCHEMA_V1
+    assert part["extra"]["efficiency_gap_definition_id"] == PARTISAN_EFFICIENCY_GAP_DEFINITION_ID
+    assert part["extra"]["metric_computation_policy"]["balance_enabled"] is True
+    assert part["extra"]["party_coding_columns"]["party_b_columns"] == ["votes_list_950"]
     assert "coverage" in part
     eg = part["metrics"]["efficiency_gap"]
     assert eg["focal_value"] == pytest.approx(0.0)

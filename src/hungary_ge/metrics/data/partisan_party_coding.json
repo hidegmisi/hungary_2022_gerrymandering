@@ -1,26 +1,8 @@
 {
   "schema_version": "hungary_ge.metrics.party_coding/v1",
-  "description": "Illustrative two-bloc reduction for metrics only; edit for research design. Bloc B sums all mapped list columns except Fidesz-KDNP (952), including minority lists and smaller parties.",
+  "description": "Default two-bloc reduction for metrics: Fidesz-KDNP (list 952) vs united opposition joint list (950). This is a measurement choice for efficiency gap and seat share, not a legal claim about alliances. Other anti-government votes (e.g. MKKP, MEMO) are excluded from bloc B unless you edit this JSON.",
   "label_a": "FIDESZ-KDNP (list 952)",
-  "label_b": "Sum of other mapped list columns (lists 937-951, 954-955)",
+  "label_b": "United opposition joint list (950, DK–Jobbik–Momentum–MSZP–LMP–Párbeszéd)",
   "party_a_columns": ["votes_list_952"],
-  "party_b_columns": [
-    "votes_list_937",
-    "votes_list_938",
-    "votes_list_939",
-    "votes_list_940",
-    "votes_list_941",
-    "votes_list_942",
-    "votes_list_943",
-    "votes_list_944",
-    "votes_list_945",
-    "votes_list_946",
-    "votes_list_947",
-    "votes_list_948",
-    "votes_list_949",
-    "votes_list_950",
-    "votes_list_951",
-    "votes_list_954",
-    "votes_list_955"
-  ]
+  "party_b_columns": ["votes_list_950"]
 }

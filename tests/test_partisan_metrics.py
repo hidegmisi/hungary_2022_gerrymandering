@@ -206,6 +206,7 @@ def test_strict_focal_raises_when_votes_without_focal_row() -> None:
 def test_load_packaged_party_coding_json() -> None:
     c = load_partisan_party_coding(default_partisan_party_coding_path())
     assert "votes_list_952" in c.party_a_columns
+    assert c.party_b_columns == ("votes_list_950",)
 
 
 def test_partisan_metrics_wrapper_order() -> None:

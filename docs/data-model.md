@@ -235,7 +235,9 @@ Optional **UTF-8 JSON** written next to the assignments Parquet (default basenam
 
 [`focal_vs_ensemble_metrics`](../src/hungary_ge/metrics/compare.py) / [`partisan_metrics`](../src/hungary_ge/metrics/__init__.py) consume **`precinct_votes.parquet`**, **`focal_oevk_assignments.parquet`**, and a **`PlanEnsemble`**. There is **no** required new binary artifact for v1; results live in a [`PartisanComparisonReport`](../src/hungary_ge/metrics/report.py) (optional JSON via [`write_json`](../src/hungary_ge/metrics/report.py)).
 
-**Party coding:** Editable JSON listing which `votes_*` columns sum into bloc **A** vs **B** (schema `hungary_ge.metrics.party_coding/v1`). Packaged example: [`src/hungary_ge/metrics/data/partisan_party_coding.json`](../src/hungary_ge/metrics/data/partisan_party_coding.json). See [partisan-metrics.md](partisan-metrics.md).
+**Party coding:** Editable JSON listing which `votes_*` columns sum into bloc **A** vs **B** (schema `hungary_ge.metrics.party_coding/v1`). Packaged example: [`src/hungary_ge/metrics/data/partisan_party_coding.json`](../src/hungary_ge/metrics/data/partisan_party_coding.json) defaults to Fidesz–KDNP (952) vs united opposition list (950). See [partisan-metrics.md](partisan-metrics.md).
+
+**County `partisan_report.json` `extra`:** Besides focal alignment fields, reports include `partisan_report_metadata_schema`, `efficiency_gap_definition_id`, `metric_computation_policy` (balance/safety knobs), `party_coding_columns`, and `vote_balance` (applied statewide scaling metadata) so reruns and paper appendices can line up definitions across runs.
 
 ## Processed artifacts (canonical names)
 

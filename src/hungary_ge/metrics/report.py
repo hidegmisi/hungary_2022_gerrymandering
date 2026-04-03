@@ -11,6 +11,8 @@ from typing import Any
 import numpy as np
 
 PARTISAN_COMPARISON_SCHEMA_V1 = "hungary_ge.metrics.comparison/v1"
+PARTISAN_REPORT_METADATA_SCHEMA_V1 = "hungary_ge.metrics.partisan_report_metadata/v1"
+PARTISAN_EFFICIENCY_GAP_DEFINITION_ID = "winner_surplus_two_bloc_turnout_normalized"
 
 
 def _json_sanitize(x: Any) -> Any:
