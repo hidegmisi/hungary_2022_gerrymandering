@@ -3,11 +3,11 @@
   "raw_list_total": 10447,
   "n_files_read": 3177,
   "n_records_in": 10447,
-  "n_rows_out": 109312,
+  "n_rows_out": 94115,
   "n_rows_szvk": 10425,
   "n_dropped_unrepaired": 22,
   "out_parquet": "C:\\Users\\hideg\\Documents\\Projects\\hungary_2022_gerrymandering\\data\\processed\\precincts_void_hex.parquet",
-  "out_parquet_sha256": "6f677d49e4af9a02d9bcce14aa3d91c8a1e038d4bba6dca645fb843a0570fc68",
+  "out_parquet_sha256": "7f06f8f83f68c2bb233a23bdbe4781b0248124dd2679b77253d515b8765eec7d",
   "crs": "EPSG:4326",
   "warnings": [
     "drop precinct (unrepaired geometry): 01-003-200",
@@ -40,90 +40,91 @@
   "gap_build": {
     "n_shell_features_read": 19,
     "n_counties_processed": 20,
-    "n_gap_polygons": 98887,
+    "n_gap_polygons": 83690,
     "n_gap_polygons_raw": 4189,
-    "n_void_cells_after_hex": 98887,
+    "n_void_cells_after_hex": 83690,
     "n_dropped_below_min_area": 1460,
-    "total_gap_area_m2": 57209859745.54291,
+    "total_gap_area_m2": 56761592878.27837,
     "median_szvk_area_m2": 3139190.809944127,
     "hex_cell_area_m2_used": 3139190.809944127,
     "n_hex_cells_truncated": 0,
+    "n_void_polygons_dropped_post_quality": 3767,
     "per_maz": {
       "01": {
-        "n_gaps": 4098,
-        "area_m2_metric": 188441221.98956895
+        "n_gaps": 1980,
+        "area_m2_metric": 180467933.27010134
       },
       "02": {
-        "n_gaps": 1815,
-        "area_m2_metric": 1340703435.5576375
+        "n_gaps": 1193,
+        "area_m2_metric": 1307245741.9739125
       },
       "03": {
-        "n_gaps": 8172,
-        "area_m2_metric": 5282380268.746583
+        "n_gaps": 7005,
+        "area_m2_metric": 5244223650.976506
       },
       "04": {
-        "n_gaps": 8254,
-        "area_m2_metric": 4663195782.317144
+        "n_gaps": 7440,
+        "area_m2_metric": 4641672347.376665
       },
       "05": {
-        "n_gaps": 6286,
-        "area_m2_metric": 2966459418.414433
+        "n_gaps": 5027,
+        "area_m2_metric": 2927892598.400493
       },
       "06": {
-        "n_gaps": 7490,
-        "area_m2_metric": 3333527403.9374986
+        "n_gaps": 6756,
+        "area_m2_metric": 3316457603.7539654
       },
       "07": {
-        "n_gaps": 6394,
-        "area_m2_metric": 3379205663.99239
+        "n_gaps": 5655,
+        "area_m2_metric": 3358090934.621521
       },
       "09": {
-        "n_gaps": 8254,
-        "area_m2_metric": 4577609821.09255
+        "n_gaps": 7478,
+        "area_m2_metric": 4555029693.496907
       },
       "10": {
-        "n_gaps": 4525,
-        "area_m2_metric": 2207958718.2649016
+        "n_gaps": 3845,
+        "area_m2_metric": 2187126718.724727
       },
       "11": {
-        "n_gaps": 8900,
-        "area_m2_metric": 4617184238.2188015
+        "n_gaps": 8182,
+        "area_m2_metric": 4597528567.35476
       },
       "12": {
-        "n_gaps": 4660,
-        "area_m2_metric": 1489157454.5123887
+        "n_gaps": 4170,
+        "area_m2_metric": 1479904517.1263707
       },
       "13": {
-        "n_gaps": 1716,
-        "area_m2_metric": 1065660758.6855208
+        "n_gaps": 1316,
+        "area_m2_metric": 1046575902.0347067
       },
       "14": {
-        "n_gaps": 11630,
-        "area_m2_metric": 4667024409.537303
+        "n_gaps": 9609,
+        "area_m2_metric": 4625579288.888842
       },
       "15": {
-        "n_gaps": 2579,
-        "area_m2_metric": 2552218423.4170346
+        "n_gaps": 1965,
+        "area_m2_metric": 2511383069.3643937
       },
       "16": {
-        "n_gaps": 4905,
-        "area_m2_metric": 3601947366.7665443
+        "n_gaps": 4106,
+        "area_m2_metric": 3565814151.40094
       },
       "17": {
-        "n_gaps": 4965,
-        "area_m2_metric": 2227779426.8200955
+        "n_gaps": 4291,
+        "area_m2_metric": 2209568055.447854
       },
       "18": {
-        "n_gaps": 1012,
-        "area_m2_metric": 4229208298.010336
+        "n_gaps": 970,
+        "area_m2_metric": 4216886217.298823
       },
       "19": {
-        "n_gaps": 2064,
-        "area_m2_metric": 1486120016.2405488
+        "n_gaps": 1586,
+        "area_m2_metric": 1465419407.3673553
       },
       "20": {
-        "n_gaps": 1168,
-        "area_m2_metric": 3334077619.021625
+        "n_gaps": 1116,
+        "area_m2_metric": 3324726479.399539
       }
     },
     "options": {
@@ -142,7 +143,9 @@
       "subdivide_min_void_factor": 4.0,
       "hex_min_cell_area_m2": 10000.0,
       "hex_max_cell_area_m2": 5000000.0,
-      "max_cells_per_gap": 200000
+      "max_cells_per_gap": 200000,
+      "min_hex_fragment_width_m": 30.0,
+      "min_hex_fragment_area_fraction": 0.15
     },
     "warnings": [
       "no shell polygon for maz=08"
