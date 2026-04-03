@@ -14,6 +14,9 @@ adds cross-border edges from bicounty runs, then maps — see
 ``build_adjacency`` call on the full layer. Prefer
 ``data/processed/precincts_void_hex.parquet`` when present (auto-picked before
 ``precincts.parquet``).
+
+Polygons are drawn from the GeoParquet as stored (WGS84); void hex sizing and filters
+are applied in ``build_precinct_layer`` / ``gaps_hex``, not in this script.
 """
 
 from __future__ import annotations

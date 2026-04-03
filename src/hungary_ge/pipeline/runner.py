@@ -452,6 +452,18 @@ def main(argv: list[str] | None = None) -> int:
         help="Pass --void-hex-max-cells-per-gap to build_precinct_layer.py",
     )
     parser.add_argument(
+        "--etl-void-hex-min-fragment-width-m",
+        type=float,
+        default=None,
+        help="Pass --void-hex-min-fragment-width-m to build_precinct_layer.py",
+    )
+    parser.add_argument(
+        "--etl-void-hex-min-fragment-area-fraction",
+        type=float,
+        default=None,
+        help="Pass --void-hex-min-fragment-area-fraction to build_precinct_layer.py",
+    )
+    parser.add_argument(
         "--etl-out-parquet",
         type=Path,
         default=None,
@@ -543,8 +555,8 @@ def main(argv: list[str] | None = None) -> int:
         "--no-progress",
         action="store_true",
         help=(
-            "County mode: disable tqdm progress bars on stderr (also disabled when stderr "
-            "is not a TTY; set TQDM_DISABLE=1 to force off)"
+            "County mode: disable tqdm bars and suppress live redist SMC stderr "
+            "(also disabled when stderr is not a TTY; set TQDM_DISABLE=1 to force tqdm off)"
         ),
     )
     parser.add_argument(
@@ -725,6 +737,20 @@ def main(argv: list[str] | None = None) -> int:
                         str(args.etl_void_hex_max_cells_per_gap),
                     ]
                 )
+            if args.etl_void_hex_min_fragment_width_m is not None:
+                extra.extend(
+                    [
+                        "--void-hex-min-fragment-width-m",
+                        str(args.etl_void_hex_min_fragment_width_m),
+                    ]
+                )
+            if args.etl_void_hex_min_fragment_area_fraction is not None:
+                extra.extend(
+                    [
+                        "--void-hex-min-fragment-area-fraction",
+                        str(args.etl_void_hex_min_fragment_area_fraction),
+                    ]
+                )
             if args.etl_out_parquet is not None:
                 out_pq = args.etl_out_parquet
                 if not out_pq.is_absolute():
@@ -891,6 +917,7 @@ def main(argv: list[str] | None = None) -> int:
                             rscript_path=rs_path,
                             strict_county_connectivity=not args.allow_disconnected_county_graph,
                             log_prefix=prefix,
+                            redist_progress=not args.no_progress,
                         )
                     except (ValueError, RedistBackendError) as exc:
                         pbar.set_postfix_str(f"{maz} fail", refresh=True)

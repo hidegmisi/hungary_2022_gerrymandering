@@ -66,7 +66,11 @@ def test_subdivide_rectangle_many_cells() -> None:
     gap = box(0, 0, 3000, 2000)
     cell_a = 80_000.0
     cells, trunc = subdivide_one_gap_polygon(
-        gap, cell_a, min_fragment_m2=1.0, max_cells=5000
+        gap,
+        cell_a,
+        min_fragment_m2=1.0,
+        max_cells=5000,
+        hex_opts=HexVoidOptions(min_hex_fragment_width_m=0.0),
     )
     assert not trunc
     assert len(cells) >= 40
@@ -94,6 +98,7 @@ def test_small_gap_not_subdivided() -> None:
         enabled=True,
         hex_cell_area_m2=10_000.0,
         subdivide_min_void_m2=50_000.0,
+        min_hex_fragment_width_m=0.0,
     )
     opts = GapBuildOptions(
         min_area_m2=1.0,
@@ -163,6 +168,7 @@ def test_large_gap_subdivided_more_rows() -> None:
         hex_cell_area_m2=120_000.0,
         subdivide_min_void_m2=50_000.0,
         max_cells_per_gap=5000,
+        min_hex_fragment_width_m=0.0,
     )
     with_hex, st1 = build_gap_features_for_maz(
         shell,
@@ -175,13 +181,96 @@ def test_large_gap_subdivided_more_rows() -> None:
     assert st1.n_gap_polygons_raw == st0.n_gap_polygons_raw
 
 
+def test_subdivide_one_gap_polygon_drops_thin_strip_with_width_filter() -> None:
+    """Street-scale slivers fail the erosion test when min_hex_fragment_width_m is set."""
+    gap = box(0, 0, 2000, 5)
+    cell_a = 50_000.0
+    opts = HexVoidOptions(min_hex_fragment_width_m=30.0)
+    cells, _trunc = subdivide_one_gap_polygon(
+        gap, cell_a, min_fragment_m2=1.0, max_cells=5000, hex_opts=opts
+    )
+    assert len(cells) == 0
+
+
+def test_subdivide_one_gap_polygon_keeps_wide_strip_with_width_filter() -> None:
+    gap = box(0, 0, 500, 80)
+    cell_a = 40_000.0
+    opts = HexVoidOptions(min_hex_fragment_width_m=30.0)
+    cells, _trunc = subdivide_one_gap_polygon(
+        gap, cell_a, min_fragment_m2=1.0, max_cells=5000, hex_opts=opts
+    )
+    assert len(cells) >= 1
+
+
+def test_subdivide_one_gap_polygon_area_fraction_drops_small_clips() -> None:
+    gap = box(0, 0, 3000, 2000)
+    cell_a = 80_000.0
+    opts = HexVoidOptions(
+        min_hex_fragment_width_m=0.0,
+        min_hex_fragment_area_fraction=0.99,
+    )
+    cells_strict, _ = subdivide_one_gap_polygon(
+        gap, cell_a, min_fragment_m2=1.0, max_cells=5000, hex_opts=opts
+    )
+    cells_loose, _ = subdivide_one_gap_polygon(
+        gap,
+        cell_a,
+        min_fragment_m2=1.0,
+        max_cells=5000,
+        hex_opts=HexVoidOptions(
+            min_hex_fragment_width_m=0.0,
+            min_hex_fragment_area_fraction=0.01,
+        ),
+    )
+    assert len(cells_strict) < len(cells_loose)
+
+
+def test_subdivide_gap_polygons_hex_drops_undivided_when_fraction_requires() -> None:
+    """Gaps below ``subdivide_min_void`` used to bypass area-fraction; post-filter fixes."""
+    polys = [box(0, 0, 10, 10)]
+    out, meta = subdivide_gap_polygons_hex(
+        polys,
+        median_szvk_area_m2=1_000_000.0,
+        hex_opts=HexVoidOptions(
+            hex_cell_area_m2=100_000.0,
+            subdivide_min_void_m2=500_000.0,
+            min_hex_fragment_width_m=0.0,
+            min_hex_fragment_area_fraction=0.15,
+        ),
+        min_fragment_m2=50.0,
+    )
+    assert len(out) == 0
+    assert meta.get("n_void_polygons_dropped_post_quality") == 1
+
+
+def test_subdivide_gap_polygons_hex_keeps_undivided_when_quality_off() -> None:
+    polys = [box(0, 0, 10, 10)]
+    out, meta = subdivide_gap_polygons_hex(
+        polys,
+        median_szvk_area_m2=1_000_000.0,
+        hex_opts=HexVoidOptions(
+            hex_cell_area_m2=100_000.0,
+            subdivide_min_void_m2=500_000.0,
+            min_hex_fragment_width_m=0.0,
+            min_hex_fragment_area_fraction=None,
+        ),
+        min_fragment_m2=50.0,
+    )
+    assert len(out) == 1
+    assert meta.get("n_void_polygons_dropped_post_quality") == 0
+
+
 def test_subdivide_gap_polygons_hex_skipped_invalid_median() -> None:
     polys = [box(0, 0, 100, 100)]
     meta: dict
     out, meta = subdivide_gap_polygons_hex(
         polys,
         median_szvk_area_m2=float("nan"),
-        hex_opts=HexVoidOptions(enabled=True, auto_size=True),
+        hex_opts=HexVoidOptions(
+            enabled=True,
+            auto_size=True,
+            min_hex_fragment_width_m=0.0,
+        ),
         min_fragment_m2=1.0,
     )
     assert meta["skipped_hex"]
@@ -219,6 +308,7 @@ def test_fuzzy_connects_hex_void_corridor() -> None:
         hex_cell_area_m2=25_000.0,
         subdivide_min_void_m2=1.0,
         max_cells_per_gap=500,
+        min_hex_fragment_width_m=0.0,
     )
     gaps, _st = build_gap_features_for_maz(
         shell,

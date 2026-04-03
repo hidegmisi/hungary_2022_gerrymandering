@@ -189,6 +189,24 @@ def main() -> int:
         action="store_true",
         help="Disable median-based sizing (requires --void-hex-cell-area-m2)",
     )
+    parser.add_argument(
+        "--void-hex-min-fragment-width-m",
+        type=float,
+        default=30.0,
+        help=(
+            "Drop clipped hex fragments thinner than this (meters; erosion test). "
+            "Use 0 to disable. Default: 30."
+        ),
+    )
+    parser.add_argument(
+        "--void-hex-min-fragment-area-fraction",
+        type=float,
+        default=None,
+        help=(
+            "Require clipped fragment area >= this fraction of full hex cell area. "
+            "Unset = no extra filter."
+        ),
+    )
     args = parser.parse_args()
 
     repo_root = args.repo_root.resolve()
@@ -213,7 +231,11 @@ def main() -> int:
     gap_stats_payload: dict[str, object] | None = None
     shell_sha: str | None = None
     if args.with_gaps:
-        if args.void_hex and args.void_hex_no_auto and args.void_hex_cell_area_m2 is None:
+        if (
+            args.void_hex
+            and args.void_hex_no_auto
+            and args.void_hex_cell_area_m2 is None
+        ):
             print(
                 "--void-hex-no-auto requires --void-hex-cell-area-m2",
                 file=sys.stderr,
@@ -246,6 +268,8 @@ def main() -> int:
                 hex_min_cell_area_m2=args.void_hex_min_cell_m2,
                 hex_max_cell_area_m2=args.void_hex_max_cell_m2,
                 max_cells_per_gap=args.void_hex_max_cells_per_gap,
+                min_hex_fragment_width_m=args.void_hex_min_fragment_width_m,
+                min_hex_fragment_area_fraction=args.void_hex_min_fragment_area_fraction,
             )
         gap_opts = GapBuildOptions(
             metric_crs=args.gap_metric_crs,
@@ -273,6 +297,7 @@ def main() -> int:
             "median_szvk_area_m2": gap_stats.median_szvk_area_m2,
             "hex_cell_area_m2_used": gap_stats.hex_cell_area_m2_used,
             "n_hex_cells_truncated": gap_stats.n_hex_cells_truncated,
+            "n_void_polygons_dropped_post_quality": gap_stats.n_void_polygons_dropped_post_quality,
             "per_maz": gap_stats.per_maz,
             "options": {
                 "metric_crs": gap_opts.metric_crs,

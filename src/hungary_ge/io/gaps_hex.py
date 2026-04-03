@@ -25,6 +25,11 @@ class HexVoidOptions:
     hex_min_cell_area_m2: float = 10_000.0
     hex_max_cell_area_m2: float = 5_000_000.0
     max_cells_per_gap: int = 200_000
+    """Minimum metric thickness (m) for a clipped fragment; ``buffer(-w/2)`` must remain non-empty.
+    ``None`` or ``<= 0`` disables. Default **30** m (~2× typical carriageway + margin)."""
+    min_hex_fragment_width_m: float | None = 30.0
+    """Require ``fragment.area >= fraction * resolved_hex_cell_area_m2``. ``None`` or ``<= 0`` disables."""
+    min_hex_fragment_area_fraction: float | None = None
 
 
 def hex_area_from_circumradius(R: float) -> float:
@@ -63,6 +68,34 @@ def _explode_polygons(geom: BaseGeometry) -> list[Polygon]:
             out.extend(_explode_polygons(part))
         return out
     return []
+
+
+def _hex_void_quality_filter_active(hex_opts: HexVoidOptions) -> bool:
+    w = hex_opts.min_hex_fragment_width_m
+    frac = hex_opts.min_hex_fragment_area_fraction
+    return (w is not None and w > 0) or (frac is not None and frac > 0)
+
+
+def _fragment_meets_hex_quality(
+    frag: Polygon,
+    cell_area_m2: float,
+    hex_opts: HexVoidOptions,
+) -> bool:
+    """Apply optional width (erosion) and area-fraction gates for clipped hex fragments."""
+    w = hex_opts.min_hex_fragment_width_m
+    if w is not None and w > 0:
+        g = frag.buffer(0)
+        if g.is_empty:
+            return False
+        eroded = g.buffer(-0.5 * w)
+        if eroded.is_empty:
+            return False
+
+    frac = hex_opts.min_hex_fragment_area_fraction
+    if frac is not None and frac > 0:
+        if frag.area < frac * cell_area_m2:
+            return False
+    return True
 
 
 def resolve_hex_cell_area_m2(
@@ -128,8 +161,9 @@ def subdivide_one_gap_polygon(
     cell_area_m2: float,
     min_fragment_m2: float,
     max_cells: int,
+    hex_opts: HexVoidOptions,
 ) -> tuple[list[Polygon], int]:
-    """Clip a hex grid to ``gap``; drop fragments below ``min_fragment_m2``.
+    """Clip a hex grid to ``gap``; drop fragments below ``min_fragment_m2`` and optional quality rules.
 
     Returns:
         ``(polygons, n_truncated)`` — ``n_truncated`` estimates remaining hex centers
@@ -150,6 +184,8 @@ def subdivide_one_gap_polygon(
         inter = hx.intersection(gap)
         for frag in _explode_polygons(inter):
             if frag.area < min_fragment_m2:
+                continue
+            if not _fragment_meets_hex_quality(frag, cell_area_m2, hex_opts):
                 continue
             out.append(frag)
             if len(out) >= max_cells:
@@ -180,6 +216,7 @@ def subdivide_gap_polygons_hex(
     meta["resolve_warnings"] = warns
     if cell_a is None:
         meta["skipped_hex"] = True
+        meta["n_void_polygons_dropped_post_quality"] = 0
         return [p for p in gap_polygons if not p.is_empty], meta
 
     meta["hex_cell_area_m2_used"] = cell_a
@@ -200,6 +237,7 @@ def subdivide_gap_polygons_hex(
             cell_a,
             min_fragment_m2,
             hex_opts.max_cells_per_gap,
+            hex_opts,
         )
         total_trunc += trunc
         if not cells:
@@ -209,4 +247,22 @@ def subdivide_gap_polygons_hex(
             final.extend(cells)
 
     meta["n_truncated_cells"] = total_trunc
+
+    # Gaps with area below ``sub_min`` (and whole-gap fallbacks) skip per-fragment
+    # checks inside ``subdivide_one_gap_polygon``; apply the same quality rules here
+    # so miniature undivided voids cannot bypass ``min_hex_fragment_area_fraction`` /
+    # width when those options are active.
+    if _hex_void_quality_filter_active(hex_opts):
+        before = len(final)
+        final = [
+            p
+            for p in final
+            if not p.is_empty
+            and float(p.area) >= min_fragment_m2
+            and _fragment_meets_hex_quality(p, cell_a, hex_opts)
+        ]
+        meta["n_void_polygons_dropped_post_quality"] = before - len(final)
+    else:
+        meta["n_void_polygons_dropped_post_quality"] = 0
+
     return final, meta

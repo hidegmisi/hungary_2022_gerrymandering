@@ -101,6 +101,8 @@ class GapBuildStats:
     median_szvk_area_m2: float | None = None
     hex_cell_area_m2_used: float | None = None
     n_hex_cells_truncated: int = 0
+    """Undivided / fallback void polygons removed by width or area-fraction (see gaps_hex)."""
+    n_void_polygons_dropped_post_quality: int = 0
     warnings: list[str] = field(default_factory=list)
     per_maz: dict[str, dict[str, int | float]] = field(default_factory=dict)
 
@@ -240,6 +242,9 @@ def build_gap_features_for_maz(
         )
         stats.hex_cell_area_m2_used = hex_meta.get("hex_cell_area_m2_used")
         stats.n_hex_cells_truncated = int(hex_meta.get("n_truncated_cells", 0))
+        stats.n_void_polygons_dropped_post_quality = int(
+            hex_meta.get("n_void_polygons_dropped_post_quality", 0)
+        )
         for w in hex_meta.get("resolve_warnings", []):
             stats.add_warning(w)
         if hex_meta.get("skipped_hex"):
@@ -325,6 +330,7 @@ def build_gap_features_all_counties(
         agg.n_dropped_below_min_area += st.n_dropped_below_min_area
         agg.total_gap_area_m2 += st.total_gap_area_m2
         agg.n_hex_cells_truncated += st.n_hex_cells_truncated
+        agg.n_void_polygons_dropped_post_quality += st.n_void_polygons_dropped_post_quality
         if st.median_szvk_area_m2 is not None:
             agg.median_szvk_area_m2 = st.median_szvk_area_m2
         if st.hex_cell_area_m2_used is not None:
