@@ -16,11 +16,6 @@ def load_szavkor_settlement_json(path: str | Path) -> dict[str, Any]:
     return json.loads(path.read_text(encoding="utf-8"))
 
 
-def load_processed_geojson(path: str | Path) -> GeoDataFrame:
-    """Load precinct GeoJSON from ``data/processed/`` (or similar)."""
-    return gpd.read_file(Path(path))
-
-
 def load_processed_geoparquet(path: str | Path) -> GeoDataFrame:
     """Load canonical precinct layer written by :func:`write_processed_geoparquet`."""
     return gpd.read_parquet(Path(path))

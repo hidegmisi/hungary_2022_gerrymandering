@@ -259,7 +259,7 @@ The [`src/hungary_ge/`](../src/hungary_ge/) package aligns pipeline code with th
 
 | Artifact | Path | Consumed by (module) |
 |----------|------|----------------------|
-| Canonical precinct layer | `data/processed/precincts.parquet` (preferred) or `precincts.geojson` | `hungary_ge.io.load_processed_geoparquet` / `load_processed_geojson` → `problem` + `graph` |
+| Canonical precinct layer | `data/processed/precincts.parquet` (preferred) or `precincts.geojson` | `hungary_ge.io.load_processed_geoparquet` (GeoJSON via `geopandas.read_file` if needed) → `problem` + `graph` |
 | Adjacency edges | `data/processed/graph/adjacency_edges.parquet` | `hungary_ge.graph.save_adjacency` / `load_adjacency` |
 | Votes / population table | `data/processed/precinct_votes.parquet` | joined on `precinct_id` (`maz-taz-szk`) for `metrics` |
 | Ensemble assignments | `data/processed/ensemble_assignments.parquet` (+ `.meta.json`, optional `…_diagnostics.json`) | [`save_plan_ensemble`](../src/hungary_ge/ensemble/persistence.py), [`load_plan_ensemble`](../src/hungary_ge/ensemble/persistence.py) → `PlanEnsemble`; [`summarize_ensemble`](../src/hungary_ge/diagnostics/__init__.py) |

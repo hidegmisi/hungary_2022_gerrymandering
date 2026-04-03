@@ -7,9 +7,7 @@ codes and 106 national districts.
 
 from __future__ import annotations
 
-import argparse
 import json
-import sys
 from datetime import UTC, datetime
 from pathlib import Path
 from typing import Any
@@ -19,7 +17,6 @@ import pandas as pd
 from hungary_ge.config import (
     COUNTY_OEVK_COUNTS_META,
     COUNTY_OEVK_COUNTS_PARQUET,
-    ProcessedPaths,
 )
 from hungary_ge.io.electoral_etl import (
     assert_focal_assignments_valid,
@@ -176,53 +173,3 @@ def write_county_oevk_counts(
     )
     meta_out.write_text(json.dumps(meta, indent=2) + "\n", encoding="utf-8")
     return pq_out, meta_out
-
-
-def main(argv: list[str] | None = None) -> int:
-    parser = argparse.ArgumentParser(
-        description=(
-            "Derive county_oevk_counts.parquet + sidecar from focal_oevk_assignments.parquet."
-        ),
-    )
-    parser.add_argument(
-        "--repo-root",
-        type=Path,
-        default=Path.cwd(),
-        help="Repository root (default: cwd)",
-    )
-    parser.add_argument(
-        "--run-id",
-        required=True,
-        help="Run id; writes under data/processed/runs/<run-id>/",
-    )
-    parser.add_argument(
-        "--focal",
-        type=Path,
-        default=None,
-        help="Path to focal_oevk_assignments.parquet (default: processed default)",
-    )
-    parser.add_argument(
-        "--national-ndists",
-        type=int,
-        default=DEFAULT_NDISTS,
-        help=f"Expected national district count (default: {DEFAULT_NDISTS})",
-    )
-    args = parser.parse_args(argv)
-    paths = ProcessedPaths(args.repo_root.resolve())
-    focal = args.focal or paths.focal_oevk_assignments_parquet
-    if not focal.is_file():
-        print(f"Missing focal parquet: {focal}", file=sys.stderr)
-        return 1
-    run_dir = paths.run_dir(args.run_id)
-    pq_out, meta_out = write_county_oevk_counts(
-        run_dir,
-        focal,
-        national_enacted_ndists=args.national_ndists,
-    )
-    print(f"Wrote {pq_out}")  # noqa: T201
-    print(f"Wrote {meta_out}")  # noqa: T201
-    return 0
-
-
-if __name__ == "__main__":
-    raise SystemExit(main())

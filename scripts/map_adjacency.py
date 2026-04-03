@@ -8,12 +8,11 @@ Example (single county, default caps)::
     uv sync --extra viz
     uv run python scripts/map_adjacency.py --maz 01 --out data/processed/graph/adjacency_map.html
 
-National (no ``--maz``): by default builds adjacency **per county** with fuzzy buffering,
+National (no ``--maz``): builds adjacency **per county** with fuzzy buffering,
 adds cross-border edges from bicounty runs, then maps — see
-``hungary_ge.graph.national_adjacency``. Use ``--legacy-national-graph`` for one
-``build_adjacency`` call on the full layer. Prefer
-``data/processed/precincts_void_hex.parquet`` when present (auto-picked before
-``precincts.parquet``).
+``hungary_ge.graph.national_adjacency``. The layer must include a ``maz`` column.
+Prefer ``data/processed/precincts_void_hex.parquet`` when present (auto-picked
+before ``precincts.parquet``).
 
 Polygons are drawn from the GeoParquet as stored (WGS84); void hex sizing and filters
 are applied in ``build_precinct_layer`` / ``gaps_hex``, not in this script.
@@ -41,15 +40,18 @@ import geopandas as gpd
 from folium.map import CustomPane
 
 from hungary_ge.config import ProcessedPaths
-from hungary_ge.graph import AdjacencyBuildOptions, adjacency_summary, build_adjacency
-from hungary_ge.graph.national_adjacency import build_national_adjacency_merged
+from hungary_ge.graph import adjacency_summary
 from hungary_ge.io import (
     GapShellSource,
     load_processed_geoparquet,
     read_shell_gdf,
 )
 from hungary_ge.pipeline.county_allocation import normalize_maz
-from hungary_ge.problem import OevkProblem, prepare_precinct_layer
+from hungary_ge.pipeline.graph_build import (
+    adjacency_options_from_map_adjacency_args,
+    build_precinct_adjacency,
+)
+from hungary_ge.problem import OevkProblem
 
 
 def _default_parquet_path(repo_root: Path) -> Path:
@@ -136,7 +138,7 @@ def main() -> int:
         "--contiguity",
         choices=("queen", "rook"),
         default="queen",
-        help="Contiguity when --legacy-national-graph or single-county without --fuzzy",
+        help="Queen/Rook for single-county maps when --fuzzy is not set",
     )
     parser.add_argument(
         "--fuzzy",
@@ -165,14 +167,6 @@ def main() -> int:
         type=str,
         default="EPSG:32633",
         help="With --fuzzy --fuzzy-buffering: projected CRS for buffering (default UTM 33N)",
-    )
-    parser.add_argument(
-        "--legacy-national-graph",
-        action="store_true",
-        help=(
-            "National only: single build_adjacency on full layer (--fuzzy / --contiguity). "
-            "Otherwise county merge + bicounty cross edges (default)."
-        ),
     )
     parser.add_argument(
         "--county-borders",
@@ -219,20 +213,18 @@ def main() -> int:
         return 1
 
     gdf = load_processed_geoparquet(pq)
-    national_merge = args.maz is None and not args.legacy_national_graph
+    national_merge = args.maz is None
     if national_merge:
         if "maz" not in gdf.columns:
             print(
-                "National county-merge mode requires a 'maz' column; "
-                "use --legacy-national-graph or add megye codes to the layer.",
+                "National county-merge mode requires a 'maz' column on the layer.",
                 file=sys.stderr,
             )
             return 1
         if len(gdf) > args.max_features:
             print(
                 f"National county-merge uses the full layer ({len(gdf)} rows > "
-                f"--max-features {args.max_features}). Raise --max-features or use "
-                "--legacy-national-graph.",
+                f"--max-features {args.max_features}). Raise --max-features.",
                 file=sys.stderr,
             )
             return 1
@@ -249,33 +241,24 @@ def main() -> int:
     )
 
     if national_merge:
-        buf_m = args.fuzzy_buffer_m if args.fuzzy_buffer_m is not None else 3.0
-        adj_opts = AdjacencyBuildOptions(
-            fuzzy=True,
-            fuzzy_buffering=True,
-            fuzzy_tolerance=args.fuzzy_tolerance,
-            fuzzy_buffer_m=buf_m,
-            fuzzy_metric_crs=args.fuzzy_metric_crs,
-        )
-        graph = build_national_adjacency_merged(gdf, prob, adj_opts)
-        gdf2, _ = prepare_precinct_layer(gdf, prob)
-    else:
-        gdf2, pmap = prepare_precinct_layer(gdf, prob)
-        if args.fuzzy:
-            adj_opts = AdjacencyBuildOptions(
-                fuzzy=True,
-                fuzzy_buffering=args.fuzzy_buffering,
-                fuzzy_tolerance=args.fuzzy_tolerance,
-                fuzzy_buffer_m=args.fuzzy_buffer_m,
-                fuzzy_metric_crs=args.fuzzy_metric_crs,
-            )
-        else:
-            adj_opts = AdjacencyBuildOptions(contiguity=args.contiguity)
-        graph = build_adjacency(
-            gdf2,
+        graph, gdf2, _adj_opts = build_precinct_adjacency(
+            gdf,
             prob,
-            pmap,
-            options=adj_opts,
+            national_county_merge=True,
+            national_fuzzy_tolerance=args.fuzzy_tolerance,
+            national_fuzzy_buffer_m=args.fuzzy_buffer_m,
+            national_fuzzy_metric_crs=args.fuzzy_metric_crs,
+        )
+    else:
+        county_opts = adjacency_options_from_map_adjacency_args(args)
+        graph, gdf2, _adj_opts = build_precinct_adjacency(
+            gdf,
+            prob,
+            national_county_merge=False,
+            national_fuzzy_tolerance=0.0,
+            national_fuzzy_buffer_m=None,
+            national_fuzzy_metric_crs=args.fuzzy_metric_crs,
+            county_adj_opts=county_opts,
         )
     summ = adjacency_summary(graph)
     print(summ)  # noqa: T201

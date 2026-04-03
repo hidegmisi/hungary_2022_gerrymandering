@@ -21,39 +21,40 @@ This note lists what you need on disk and which commands rebuild the **pilot** d
 From the **repository root**, after `uv sync` and with raw data present:
 
 ```bash
-uv run python scripts/run_pilot_pipeline.py
+uv run hungary-ge-pipeline
 ```
+
+(or `uv run python -m hungary_ge.pipeline` — same entrypoint). Stage logic lives under `src/hungary_ge/pipeline/stages/` (`NAME`, `add_arguments`, `run(ctx)` per stage; see `stages/base.py`).
 
 Stages (default): **etl** → **votes** → **graph**.
 
-- **etl:** `scripts/build_precinct_layer.py` → `data/processed/precincts.parquet` (+ default manifest under `data/processed/manifests/`).
-- **votes:** `scripts/build_precinct_votes.py` → `precinct_votes.parquet`, `focal_oevk_assignments.parquet`.
-- **graph:** writes `data/processed/graph/adjacency_edges.parquet` and `adjacency_edges.meta.json` (queen contiguity by default).
+- **etl:** in-process `hungary_ge.pipeline.precinct_etl` (same flags as `scripts/build_precinct_layer.py`) → `data/processed/precincts.parquet` (+ default manifest `data/processed/manifests/<parquet-stem>_etl.json`, e.g. `precincts_etl.json`).
+- **votes:** in-process `hungary_ge.pipeline.votes_etl` → `precinct_votes.parquet`, `focal_oevk_assignments.parquet` (+ default `manifests/<votes-stem>_etl.json`).
+- **graph:** writes `data/processed/graph/adjacency_edges.parquet` and `adjacency_edges.meta.json` (queen contiguity by default). National scope uses **county-merge** adjacency and requires a **`maz`** column on the precinct layer.
 
-Equivalent module invocation:
-
-```bash
-uv run python -m hungary_ge.pipeline
-```
-
-Console entry (after `uv sync`):
+After a successful run, the CLI also writes a **run provenance** file: `data/processed/manifests/run_<UTC-timestamp>.json` (argv, optional git HEAD, fingerprints for the precinct layer and adjacency Parquet when present).
 
 ```bash
 uv run hungary-ge-pipeline --help
 ```
+
+### Pipeline profiles (bundled flags)
+
+- **`--pipeline-profile plain`** — `precincts.parquet`, queen (no fuzzy graph flags).
+- **`--pipeline-profile void_hex_fuzzy_latest`** — void-hex ETL defaults (`--etl-with-gaps`, `--etl-shell data/raw/admin`, `--etl-void-hex`, `--etl-out-parquet data/processed/precincts_void_hex.parquet`), matching `--parquet`, plus `--graph-fuzzy --graph-fuzzy-buffering`.
 
 ### Optional Folium map (one county)
 
 Requires `uv sync --extra viz`. Append the **viz** stage and pass county code:
 
 ```bash
-uv run python scripts/run_pilot_pipeline.py --only etl votes graph viz --viz-maz 01
+uv run hungary-ge-pipeline --only etl votes graph viz --viz-maz 01
 ```
 
-Fuzzy adjacency for graph + viz:
+Fuzzy adjacency for graph + viz (or use `--pipeline-profile void_hex_fuzzy_latest` for ETL+graph defaults):
 
 ```bash
-uv run python scripts/run_pilot_pipeline.py --graph-fuzzy --graph-fuzzy-buffering --only graph viz --viz-maz 01 --parquet data/processed/precincts_void_hex.parquet
+uv run hungary-ge-pipeline --graph-fuzzy --graph-fuzzy-buffering --only graph viz --viz-maz 01 --parquet data/processed/precincts_void_hex.parquet
 ```
 
 (Adjust `--parquet` if your void/hex layer lives elsewhere.)
@@ -128,7 +129,7 @@ Rationale: this keeps fuzzy behavior stable between county and national runs. Sm
 If `precincts.parquet` already exists:
 
 ```bash
-uv run python scripts/run_pilot_pipeline.py --only graph
+uv run hungary-ge-pipeline --only graph
 ```
 
 ### Hex void ETL then national adjacency
@@ -136,10 +137,16 @@ uv run python scripts/run_pilot_pipeline.py --only graph
 Example (you must supply `--etl-shell`):
 
 ```bash
-uv run python scripts/run_pilot_pipeline.py \
+uv run hungary-ge-pipeline \
   --etl-with-gaps --etl-shell path/to/megye.geojson --etl-void-hex \
   --etl-out-parquet data/processed/precincts_void_hex.parquet \
   --parquet data/processed/precincts_void_hex.parquet
+```
+
+Or one switch after raw data is present:
+
+```bash
+uv run hungary-ge-pipeline --pipeline-profile void_hex_fuzzy_latest
 ```
 
 ## Tests

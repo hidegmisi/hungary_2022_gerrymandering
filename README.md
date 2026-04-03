@@ -39,7 +39,7 @@ From the repository root (after `uv sync`), with raw data present:
 uv run python scripts/build_precinct_layer.py
 ```
 
-This writes `data/processed/precincts.parquet` and, by default, `data/processed/manifests/precincts_etl.json` (counts, dropped rows, SHA-256 of the parquet). Use `--out-geojson path` for a GeoJSON copy. Geometry repair and provenance are documented in [`docs/data-model.md`](docs/data-model.md) (ETL subsection).
+This writes `data/processed/precincts.parquet` and, by default, `data/processed/manifests/<output-stem>_etl.json` (e.g. `precincts_etl.json`: counts, dropped rows, SHA-256 of the parquet). Use `--out-geojson path` for a GeoJSON copy. Geometry repair and provenance are documented in [`docs/data-model.md`](docs/data-model.md) (ETL subsection).
 
 Other processed artifacts (graphs, votes tables, ensemble outputs) also go under `data/processed/` per the data model.
 
@@ -48,10 +48,10 @@ Other processed artifacts (graphs, votes tables, ensemble outputs) also go under
 Slice 10 bundles the default **processed-data** steps in one command (optional Folium **viz** stage needs `uv sync --extra viz`):
 
 ```bash
-uv run python scripts/run_pilot_pipeline.py
+uv run hungary-ge-pipeline
 ```
 
-Same runner as `uv run python -m hungary_ge.pipeline` or `uv run hungary-ge-pipeline`. Commands, inputs, graph-only runs, and **pytest** marker behavior are documented in [`REPRODUCIBILITY.md`](REPRODUCIBILITY.md).
+Same as `uv run python -m hungary_ge.pipeline`. County allocation uses the pipeline’s **allocation** stage (`--only allocation --run-id …`), not a separate package CLI. Commands, profiles (`--pipeline-profile`), inputs, graph-only runs, and **pytest** marker behavior are documented in [`REPRODUCIBILITY.md`](REPRODUCIBILITY.md).
 
 ### Adjacency map (optional)
 

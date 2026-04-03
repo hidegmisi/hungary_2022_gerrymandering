@@ -33,7 +33,6 @@ from hungary_ge.io.gaps_hex import (
     hex_area_from_circumradius,
 )
 from hungary_ge.io.geoio import (
-    load_processed_geojson,
     load_processed_geoparquet,
     load_szavkor_settlement_json,
     write_processed_geojson,
@@ -104,7 +103,6 @@ __all__ = [
     "composite_precinct_id",
     "compute_shell_source_sha256",
     "merge_szvk_and_gaps",
-    "load_processed_geojson",
     "load_processed_geoparquet",
     "load_szavkor_settlement_json",
     "parse_poligon",

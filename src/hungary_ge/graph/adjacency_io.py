@@ -191,9 +191,3 @@ def load_adjacency(
     return from_neighbor_lists(order, contiguity, nbr)
 
 
-def load_patch_from_json(path: str | Path) -> AdjacencyPatch:
-    """Load :class:`AdjacencyPatch` from ``{"add": [[i,j],...], "remove": [...]}``."""
-    raw = json.loads(Path(path).read_text(encoding="utf-8"))
-    add = tuple(tuple(pair) for pair in raw.get("add", []))
-    remove = tuple(tuple(pair) for pair in raw.get("remove", []))
-    return AdjacencyPatch(add=add, remove=remove)

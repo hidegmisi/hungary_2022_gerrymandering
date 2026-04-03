@@ -67,10 +67,6 @@ class ProcessedPaths:
         return self.processed_dir / ENSEMBLE_ASSIGNMENTS_PARQUET
 
     @property
-    def ensemble_assignments_meta(self) -> Path:
-        return self.processed_dir / ENSEMBLE_ASSIGNMENTS_META
-
-    @property
     def ensemble_assignments_diagnostics_json(self) -> Path:
         return self.processed_dir / ENSEMBLE_ASSIGNMENTS_DIAGNOSTICS_JSON
 

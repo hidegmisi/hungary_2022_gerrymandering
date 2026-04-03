@@ -324,7 +324,9 @@ def test_pilot_pipeline_graph_stage_writes_edges(tmp_path: Path) -> None:
     proc = repo / "data" / "processed"
     proc.mkdir(parents=True)
     pq = proc / "precincts.parquet"
-    write_processed_geoparquet(_grid_gdf(), pq)
+    gdf = _grid_gdf()
+    gdf["maz"] = "01"
+    write_processed_geoparquet(gdf, pq)
     code = main(
         [
             "--repo-root",

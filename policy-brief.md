@@ -226,7 +226,7 @@ uv run python -c "import geopandas; import hungary_ge; print('ok')"
 ### Default pilot pipeline
 
 ```bash
-uv run python scripts/run_pilot_pipeline.py
+uv run hungary-ge-pipeline
 ```
 
 Equivalent:

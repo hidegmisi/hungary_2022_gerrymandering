@@ -52,6 +52,9 @@ data/processed/graph/*.parquet
 data/processed/graph/*.json
 data/processed/graph/*.html
 
+# Auto-generated per pipeline invocation (regenerate with hungary-ge-pipeline)
+data/processed/manifests/run_*.json
+
 # Per-run pipeline outputs (county mode, rollups); regenerate with pipeline
 data/processed/runs/
 
