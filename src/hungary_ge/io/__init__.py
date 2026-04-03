@@ -45,6 +45,7 @@ from hungary_ge.io.precinct_etl import (
 )
 from hungary_ge.io.precinct_geometry_qa import (
     compute_precinct_metrics,
+    compute_precinct_overlaps,
     filter_szvk_rows,
 )
 from hungary_ge.io.szavkor_parse import (
@@ -73,6 +74,7 @@ __all__ = [
     "PrecinctBuildStats",
     "SzavkorRecord",
     "compute_precinct_metrics",
+    "compute_precinct_overlaps",
     "filter_szvk_rows",
     "build_gap_features_all_counties",
     "build_gap_features_for_maz",

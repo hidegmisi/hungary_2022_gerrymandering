@@ -5,11 +5,13 @@ from __future__ import annotations
 import math
 
 import geopandas as gpd
+import pandas as pd
 import pytest
 from shapely.geometry import MultiPolygon, Polygon, box
 
 from hungary_ge.io.precinct_geometry_qa import (
     compute_precinct_metrics,
+    compute_precinct_overlaps,
     filter_szvk_rows,
 )
 from hungary_ge.problem import DEFAULT_PRECINCT_ID_COLUMN
@@ -118,3 +120,106 @@ def test_compute_precinct_metrics_row_order_preserved() -> None:
     )
     m = compute_precinct_metrics(gdf, metric_crs="EPSG:32633")
     assert m["precinct_id"].tolist() == ["b", "a"]
+
+
+def test_compute_precinct_overlaps_two_overlapping_squares() -> None:
+    a = box(0.0, 0.0, 1.0, 1.0)
+    b = box(0.5, 0.0, 1.5, 1.0)
+    gdf = gpd.GeoDataFrame(
+        {
+            DEFAULT_PRECINCT_ID_COLUMN: ["p-a", "p-b"],
+            "maz": ["01", "01"],
+            "geometry": [a, b],
+        },
+        crs="EPSG:32633",
+    )
+    agg, edges = compute_precinct_overlaps(
+        gdf,
+        min_overlap_m2=0.01,
+        min_overlap_ratio=None,
+    )
+    assert len(agg) == 2
+    assert agg["n_overlap_partners"].tolist() == [1, 1]
+    assert math.isclose(agg["sum_overlap_area_m2"].iloc[0], 0.5, rel_tol=1e-9)
+    assert math.isclose(agg["max_overlap_area_m2"].iloc[0], 0.5, rel_tol=1e-9)
+    assert len(edges) == 1
+    assert set(edges.iloc[0][["precinct_id_a", "precinct_id_b"]].tolist()) == {
+        "p-a",
+        "p-b",
+    }
+    assert math.isclose(edges["intersection_area_m2"].iloc[0], 0.5, rel_tol=1e-9)
+
+
+def test_compute_precinct_overlaps_adjacent_touch_no_material() -> None:
+    a = box(0.0, 0.0, 1.0, 1.0)
+    b = box(1.0, 0.0, 2.0, 1.0)
+    gdf = gpd.GeoDataFrame(
+        {
+            DEFAULT_PRECINCT_ID_COLUMN: ["p-a", "p-b"],
+            "maz": ["01", "01"],
+            "geometry": [a, b],
+        },
+        crs="EPSG:32633",
+    )
+    agg, edges = compute_precinct_overlaps(gdf, min_overlap_m2=1.0)
+    assert agg["n_overlap_partners"].tolist() == [0, 0]
+    assert len(edges) == 0
+
+
+def test_compute_precinct_overlaps_hub_covers_many() -> None:
+    hub = box(0.0, 0.0, 10.0, 10.0)
+    s1 = box(1.0, 1.0, 2.0, 2.0)
+    s2 = box(3.0, 1.0, 4.0, 2.0)
+    s3 = box(5.0, 1.0, 6.0, 2.0)
+    gdf = gpd.GeoDataFrame(
+        {
+            DEFAULT_PRECINCT_ID_COLUMN: ["hub", "s1", "s2", "s3"],
+            "maz": ["01", "01", "01", "01"],
+            "geometry": [hub, s1, s2, s3],
+        },
+        crs="EPSG:32633",
+    )
+    agg, edges = compute_precinct_overlaps(
+        gdf,
+        min_overlap_m2=0.01,
+        min_overlap_ratio=None,
+    )
+    hub_row = agg.loc[agg["precinct_id"] == "hub"].iloc[0]
+    assert hub_row["n_overlap_partners"] == 3
+    assert len(edges) == 3
+
+
+def test_compute_precinct_overlaps_order_matches_input_gdf() -> None:
+    gdf = gpd.GeoDataFrame(
+        {
+            DEFAULT_PRECINCT_ID_COLUMN: ["second", "first"],
+            "maz": ["02", "01"],
+            "geometry": [box(100, 0, 101, 1), box(0, 0, 1, 1)],
+        },
+        crs="EPSG:32633",
+    )
+    agg, _edges = compute_precinct_overlaps(gdf)
+    assert agg["precinct_id"].tolist() == ["second", "first"]
+
+
+def test_compute_precinct_overlaps_missing_maz_column() -> None:
+    gdf = gpd.GeoDataFrame(
+        {DEFAULT_PRECINCT_ID_COLUMN: ["x"], "geometry": [box(0, 0, 1, 1)]},
+        crs="EPSG:32633",
+    )
+    with pytest.raises(ValueError, match="missing maz column"):
+        compute_precinct_overlaps(gdf)
+
+
+def test_compute_precinct_overlaps_empty_gdf() -> None:
+    gdf = gpd.GeoDataFrame(
+        {
+            DEFAULT_PRECINCT_ID_COLUMN: pd.Series(dtype=str),
+            "maz": pd.Series(dtype=str),
+            "geometry": gpd.GeoSeries(dtype="geometry"),
+        },
+        crs="EPSG:32633",
+    )
+    agg, edges = compute_precinct_overlaps(gdf)
+    assert len(agg) == 0
+    assert len(edges) == 0
