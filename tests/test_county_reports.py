@@ -31,7 +31,9 @@ def test_populations_aligned_to_units() -> None:
             "voters": [10.0, 20.0],
         },
     )
-    assert populations_aligned_to_units(("a", "b", "c"), votes, pop_column="voters") == [
+    assert populations_aligned_to_units(
+        ("a", "b", "c"), votes, pop_column="voters"
+    ) == [
         10.0,
         20.0,
         0.0,

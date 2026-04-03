@@ -62,7 +62,9 @@ def county_adjacent_maz_pairs(gdf: GeoDataFrame) -> set[tuple[str, str]]:
     return pairs
 
 
-def _national_id_to_index(gdf_nat: GeoDataFrame, problem: OevkProblem) -> dict[str, int]:
+def _national_id_to_index(
+    gdf_nat: GeoDataFrame, problem: OevkProblem
+) -> dict[str, int]:
     col = problem.precinct_id_column
     return {str(pid): i for i, pid in enumerate(gdf_nat[col].astype(str))}
 
@@ -71,9 +73,7 @@ def _national_id_to_maz(gdf_nat: GeoDataFrame, problem: OevkProblem) -> dict[str
     col = problem.precinct_id_column
     return {
         str(pid): _normalize_maz(m)
-        for pid, m in zip(
-            gdf_nat[col], gdf_nat["maz"], strict=False
-        )
+        for pid, m in zip(gdf_nat[col], gdf_nat["maz"], strict=False)
     }
 
 

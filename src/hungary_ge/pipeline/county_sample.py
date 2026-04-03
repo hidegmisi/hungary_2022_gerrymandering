@@ -151,9 +151,7 @@ def run_county_redist_sample(
         else "EPSG:32633"
     )
     if not _county_subgraph_ok(graph):
-        graph, n_br = _bridge_components_for_redist(
-            graph, gdf2, metric_crs=metric_crs
-        )
+        graph, n_br = _bridge_components_for_redist(graph, gdf2, metric_crs=metric_crs)
         if n_br > 0:
             logger.warning(
                 "%sredist prep: added %s bridging edge(s) between disconnected components "
