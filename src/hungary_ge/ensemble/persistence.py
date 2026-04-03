@@ -181,38 +181,56 @@ def _plan_from_long_df(
         unit_ids = tuple(sorted(df[pcol].astype(str).unique()))
 
     n_u = len(unit_ids)
-    idx_by_pid = {pid: i for i, pid in enumerate(unit_ids)}
 
-    draws = sorted(int(x) for x in df[draw_col].unique())
-    n_d = len(draws)
+    work = df[[pcol, draw_col, dist_col]].copy()
+    work["_pid"] = work[pcol].astype(str)
+    work["_draw"] = pd.to_numeric(work[draw_col], errors="coerce")
+    if work["_draw"].isna().any():
+        msg = f"long parquet: non-numeric values in {draw_col!r}"
+        raise ValueError(msg)
+    work["_draw"] = work["_draw"].astype(np.int64)
+    work[dist_col] = pd.to_numeric(work[dist_col], errors="coerce")
+    if work[dist_col].isna().any():
+        msg = f"long parquet: non-numeric values in {dist_col!r}"
+        raise ValueError(msg)
+
+    piv = work.pivot_table(
+        index="_pid",
+        columns="_draw",
+        values=dist_col,
+        aggfunc="first",
+    )
+    draws_tuple = tuple(sorted(int(c) for c in piv.columns))
+    n_d = len(draws_tuple)
+
+    piv = piv.reindex(index=list(unit_ids), columns=list(draws_tuple))
+    if piv.isna().any().any():
+        msg = (
+            "long parquet: incomplete (precinct_id, draw) grid after pivot "
+            f"(expected {n_u} units × {n_d} draws; check duplicates or missing pairs)"
+        )
+        raise ValueError(msg)
+
+    arr = piv.to_numpy(dtype=np.int64, copy=False)
+    plan_columns = [arr[:, j].astype(int).tolist() for j in range(n_d)]
 
     chain_in_df = chain_col in df.columns
-    cols: list[list[int]] = []
-    chain_vals: list[int | None] = []
-    for d in draws:
-        sub = df.loc[df[draw_col] == d]
-        if len(sub) != n_u:
-            msg = f"draw {d}: expected {n_u} rows, got {len(sub)}"
-            raise ValueError(msg)
-        dist = [0] * n_u
-        for _, row in sub.iterrows():
-            pid = str(row[pcol])
-            dist[idx_by_pid[pid]] = int(row[dist_col])
-        cols.append(dist)
-        if chain_in_df:
-            chain_vals.append(int(sub[chain_col].iloc[0]))
+    ch: tuple[int, ...] | None = None
+    if chain_in_df:
+        g = df.assign(
+            _draw_norm=pd.to_numeric(df[draw_col], errors="coerce").astype(np.int64)
+        ).groupby("_draw_norm", sort=False)[chain_col]
+        first_by_draw = g.first()
+        chain_vals = [int(first_by_draw.loc[d]) for d in draws_tuple]
+        ch = tuple(chain_vals)
 
-    draw_ids = tuple(draws)
-    ch: tuple[int, ...] | None = (
-        tuple(chain_vals) if chain_in_df and len(chain_vals) == n_d else None
-    )
     meta_d: dict[str, object] = (
         dict(meta["metadata"]) if meta and meta.get("metadata") else {}
     )
     return PlanEnsemble.from_columns(
         unit_ids,
-        cols,
-        draw_ids=draw_ids,
+        plan_columns,
+        draw_ids=draws_tuple,
         chain_or_run=ch,
         metadata=meta_d,
     )
@@ -319,18 +337,22 @@ def load_plan_ensemble_draw_column(
         msg = "unit_ids required when manifest has no unit_ids"
         raise ValueError(msg)
 
-    idx_by_pid = {pid: i for i, pid in enumerate(uid)}
     dataset = pads.dataset(parquet_path, format="parquet")
     table = dataset.to_table(
         filter=(pads.field(draw_col) == draw), columns=[pcol, dist_col]
     )
     sub = table.to_pandas()
-    if len(sub) != len(uid):
-        msg = f"draw {draw}: expected {len(uid)} rows, got {len(sub)}"
+    sub_u = sub.drop_duplicates(subset=[pcol], keep="first")
+    if len(sub_u) != len(uid):
+        msg = (
+            f"draw {draw}: expected {len(uid)} unique {pcol!r} rows, got {len(sub_u)} "
+            f"(raw rows {len(sub)})"
+        )
         raise ValueError(msg)
 
-    out = np.zeros(len(uid), dtype=np.int32)
-    for _, row in sub.iterrows():
-        pid = str(row[pcol])
-        out[idx_by_pid[pid]] = int(row[dist_col])
-    return out
+    s = sub_u.set_index(sub_u[pcol].astype(str))[dist_col]
+    aligned = s.reindex(list(uid))
+    if aligned.isna().any():
+        msg = f"draw {draw}: precinct_id set does not match manifest unit_ids order"
+        raise ValueError(msg)
+    return aligned.astype(np.int32).to_numpy()
