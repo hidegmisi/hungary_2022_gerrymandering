@@ -6,7 +6,7 @@ Default stages: ``etl``, ``votes``, ``graph``. ``viz`` is opt-in (needs ``viz`` 
 ``data/processed/runs/<run-id>/counties/<maz>/`` for ``graph``, ``viz``, and
 ``sample`` (``redist`` SMC → ``ensemble/ensemble_assignments.parquet``), and
 ``reports`` (``diagnostics.json`` + ``partisan_report.json`` per county), and
-``rollup`` (``national_report.json``).
+``rollup`` (``national_report.json``), and ``policy_figures`` (memo PNG charts).
 """
 
 from __future__ import annotations

@@ -18,6 +18,7 @@ STAGE_CHOICES = (
     "sample",
     "reports",
     "rollup",
+    "policy_figures",
 )
 
 

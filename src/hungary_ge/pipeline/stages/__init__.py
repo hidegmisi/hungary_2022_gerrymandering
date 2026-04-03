@@ -11,6 +11,7 @@ from . import (
     allocation_stage,
     etl_stage,
     graph_stage,
+    policy_figures_stage,
     reports_stage,
     rollup_stage,
     sample_stage,
@@ -28,6 +29,7 @@ _ARGUMENT_REGISTRARS: tuple[Callable[[argparse.ArgumentParser], None], ...] = (
     sample_stage.add_arguments,
     reports_stage.add_arguments,
     rollup_stage.add_arguments,
+    policy_figures_stage.add_arguments,
     votes_stage.add_arguments,
     allocation_stage.add_arguments,
 )
@@ -41,6 +43,7 @@ STAGE_RUNNERS: dict[str, Callable[[PipelineContext], int]] = {
     sample_stage.NAME: sample_stage.run,
     reports_stage.NAME: reports_stage.run,
     rollup_stage.NAME: rollup_stage.run,
+    policy_figures_stage.NAME: policy_figures_stage.run,
 }
 
 
